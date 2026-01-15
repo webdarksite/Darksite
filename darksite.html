@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DARKSIDE Premium Service</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Padauk:wght@400;700&display=swap');
+        body { background-color: #050505; color: #f1f5f9; font-family: 'Padauk', sans-serif; overflow-x: hidden; }
+        .neon-text { text-shadow: 0 0 10px #ec4899, 0 0 20px #ec4899; }
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.05); }
+        .admin-only { display: none; }
+        .slider-container { overflow-x: auto; scroll-snap-type: x mandatory; display: flex; gap: 12px; scrollbar-width: none; border-radius: 20px; }
+        .slider-container::-webkit-scrollbar { display: none; }
+        .slide-item { flex: 0 0 85%; scroll-snap-align: center; border-radius: 20px; height: 400px; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); }
+        
+        /* ယာယီနားထားသည့်စနစ်အတွက် Overlay */
+        #closedOverlay {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 999;
+            flex-direction: column; justify-content: center; align-items: center;
+        }
+    </style>
+</head>
+<body class="pb-20">
+
+    <div id="closedOverlay">
+        <i class="fas fa-hand-paper text-6xl text-red-600 mb-4"></i>
+        <h1 class="text-3xl font-bold text-white">ယာယီနားထားပါသည်</h1>
+        <p class="text-gray-400 mt-2">မကြာမီ ပြန်လာပါမည်...</p>
+    </div>
+
+    <div class="text-center py-8 bg-gradient-to-b from-pink-900/20 to-transparent">
+        <h1 class="text-5xl font-black neon-text text-pink-500 tracking-tighter">DARKSIDE</h1>
+        <p class="text-gray-300 mt-2 font-semibold">Sexchat & dategirl & စပွန်ဆာများ Fb တို့ဆက်သွယ်ရန်နိုင်ပါသည်</p>
+        <button onclick="loginPrompt()" class="opacity-10 text-[8px] mt-2">System Login</button>
+    </div>
+
+    <div id="adminPanel" class="admin-only glass m-4 p-6 rounded-3xl border-yellow-500/30">
+        <h2 class="text-xl font-bold mb-4 text-yellow-400"><i class="fas fa-cog fa-spin"></i> Management Panel</h2>
+        <div class="space-y-4 text-black">
+            <input type="text" id="nameInput" placeholder="အမည်" class="w-full p-3 rounded-xl outline-none border-none">
+            <div class="flex gap-2">
+                <input type="number" id="ageInput" placeholder="အသက်" class="w-1/2 p-3 rounded-xl">
+                <input type="text" id="timeInput" placeholder="အချိန် (24hr)" class="w-1/2 p-3 rounded-xl">
+            </div>
+            <input type="text" id="priceInput" placeholder="စျေးနှုန်း" class="w-full p-3 rounded-xl">
+            <div class="bg-slate-700 p-4 rounded-xl text-white">
+                <p class="text-sm mb-2">ပုံတင်ရန် (၁ မှ ၃၀ ထိ)</p>
+                <input type="file" id="imageInput" multiple accept="image/*" class="text-xs">
+            </div>
+            <div class="flex gap-2">
+                <button onclick="updateData()" class="bg-blue-600 text-white font-bold py-3 rounded-xl flex-1">Update တင်မည်</button>
+                <button onclick="toggleStatus()" id="statusBtn" class="bg-red-600 text-white font-bold py-3 rounded-xl flex-1">ယာယီနားမည်</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainContent" class="max-w-md mx-auto px-4">
+        
+        <div id="statusBadge" class="mb-4 text-center py-1 px-4 rounded-full bg-green-500/20 text-green-400 text-xs font-bold w-max mx-auto border border-green-500/30">
+            ● ONLINE NOW
+        </div>
+
+        <div class="glass rounded-[2.5rem] overflow-hidden shadow-2xl border-white/10">
+            <div id="imageSlider" class="slider-container p-3">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1000&auto=format&fit=crop" class="slide-item">
+                <div class="slide-item bg-slate-800 flex items-center justify-center text-gray-500 italic">Slide to see more...</div>
+            </div>
+
+            <div class="p-8">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h2 id="displayName" class="text-4xl font-bold tracking-tight">Evelyn</h2>
+                        <div class="flex gap-3 mt-1">
+                            <span id="displayAge" class="text-pink-400 font-medium">Age: 21</span>
+                            <span id="displayTime" class="text-gray-500 text-sm"><i class="far fa-clock mr-1"></i> Available 24hr</span>
+                        </div>
+                    </div>
+                    <div id="displayPrice" class="text-2xl font-black text-white bg-pink-600 px-4 py-1 rounded-2xl shadow-lg shadow-pink-600/20">
+                        50,000 Ks
+                    </div>
+                </div>
+
+                <p class="text-gray-400 text-sm leading-relaxed mb-8 border-l-2 border-pink-500 pl-4">
+                    အကောင်းဆုံးဝန်ဆောင်မှုပေးပါသည်။ စိတ်ကြိုက်ပုံများကို Slide ဆွဲကြည့်နိုင်ပါသည်။ လူကိုယ်တိုင်တွေ့ဆုံနိုင်သလို Sexchat လည်းရရှိနိုင်ပါသည်။
+                </p>
+
+                <a href="https://www.facebook.com/profile.php?id=61586281884184" 
+                   target="_blank"
+                   class="block w-full bg-gradient-to-r from-pink-600 via-pink-500 to-purple-600 text-center py-5 rounded-2xl font-black text-xl shadow-xl shadow-pink-600/30 active:scale-95 transition-all duration-200">
+                   <i class="fab fa-facebook-messenger mr-2"></i> ဆက်သွယ်ရန် (FB)
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isOpen = true;
+
+        function loginPrompt() {
+            const id = prompt("Admin Passcode:");
+            if(id === "Z@w119241") {
+                document.getElementById('adminPanel').style.display = 'block';
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            }
+        }
+
+        function toggleStatus() {
+            isOpen = !isOpen;
+            const overlay = document.getElementById('closedOverlay');
+            const btn = document.getElementById('statusBtn');
+            const badge = document.getElementById('statusBadge');
+
+            if(isOpen) {
+                overlay.style.display = 'none';
+                badge.innerText = "● ONLINE NOW";
+                badge.className = "mb-4 text-center py-1 px-4 rounded-full bg-green-500/20 text-green-400 text-xs font-bold w-max mx-auto border border-green-500/30";
+                btn.innerText = "ယာယီနားမည်";
+                btn.className = "bg-red-600 text-white font-bold py-3 rounded-xl flex-1";
+            } else {
+                overlay.style.display = 'flex';
+                badge.innerText = "● OFFLINE";
+                badge.className = "mb-4 text-center py-1 px-4 rounded-full bg-red-500/20 text-red-400 text-xs font-bold w-max mx-auto border border-red-500/30";
+                btn.innerText = "ပြန်ဖွင့်မည်";
+                btn.className = "bg-green-600 text-white font-bold py-3 rounded-xl flex-1";
+            }
+        }
+
+        function updateData() {
+            const name = document.getElementById('nameInput').value;
+            const age = document.getElementById('ageInput').value;
+            const price = document.getElementById('priceInput').value;
+            const time = document.getElementById('timeInput').value;
+            const imgFiles = document.getElementById('imageInput').files;
+
+            if(name) document.getElementById('displayName').innerText = name;
+            if(age) document.getElementById('displayAge').innerText = "Age: " + age;
+            if(price) document.getElementById('displayPrice').innerText = price + " Ks";
+            if(time) document.getElementById('displayTime').innerText = "Available " + time;
+
+            if(imgFiles.length > 0) {
+                const slider = document.getElementById('imageSlider');
+                slider.innerHTML = '';
+                const count = Math.min(imgFiles.length, 30);
+                
+                for(let i=0; i < count; i++) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = "slide-item";
+                        slider.appendChild(img);
+                    }
+                    reader.readAsDataURL(imgFiles[i]);
+                }
+            }
+            alert("Updated Successfully!");
+        }
+    </script>
+</body>
+</html>
