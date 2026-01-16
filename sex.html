@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Padauk:wght@400;700&display=swap');
         
@@ -230,6 +231,108 @@
             10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
             20%, 40%, 60%, 80% { transform: translateX(5px); }
         }
+        
+        /* Image Upload Styling */
+        .image-upload-container {
+            position: relative;
+            min-height: 200px;
+        }
+        
+        .image-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .image-preview-item {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .image-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .remove-image-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .upload-area {
+            border: 2px dashed rgba(255,255,255,0.3);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .upload-area:hover {
+            border-color: #ec4899;
+            background: rgba(236, 72, 153, 0.1);
+        }
+        
+        .upload-area.dragover {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+            transform: scale(1.02);
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ec4899, #8b5cf6);
+            transition: width 0.3s ease;
+        }
+        
+        .camera-preview {
+            width: 100%;
+            max-width: 300px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 0 auto;
+            display: none;
+        }
+        
+        #cameraVideo {
+            width: 100%;
+            height: auto;
+            transform: scaleX(-1);
+        }
+        
+        .camera-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
     </style>
 </head>
 <body class="pb-24">
@@ -299,15 +402,67 @@
                 <input type="text" id="priceIn" placeholder="15000 Ks, 20000 Ks" class="w-full p-4 rounded-2xl input-field">
             </div>
             
+            <!-- Image Upload Section -->
             <div class="glass p-4 rounded-2xl border border-white/10">
                 <label class="block text-pink-400 font-bold mb-2">
-                    <i class="fas fa-images mr-2"></i>ပုံ Link များ
+                    <i class="fas fa-images mr-2"></i>ပုံများတင်ရန်
                 </label>
-                <textarea id="imgLinks" placeholder="https://image1.jpg, https://image2.jpg, https://image3.jpg" class="w-full p-4 rounded-xl input-field text-sm min-h-[100px]" rows="3"></textarea>
-                <p class="text-gray-400 text-xs mt-3 flex items-center">
-                    <i class="fas fa-info-circle mr-2"></i>
-                    ပုံ link များကို ကော်မာခြားပြီးထည့်ပါ (အနည်းဆုံး ၁ခု)
-                </p>
+                
+                <!-- Image Upload Area -->
+                <div class="image-upload-container">
+                    <div id="uploadArea" class="upload-area">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
+                        <p class="text-gray-300 font-bold mb-1">ပုံများကို ဒီနေရာတွင် ဆွဲချချပါ</p>
+                        <p class="text-gray-400 text-sm">သို့မဟုတ်</p>
+                        <div class="flex flex-col sm:flex-row gap-2 mt-3">
+                            <button onclick="document.getElementById('fileInput').click()" 
+                                    class="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-6 rounded-xl font-bold hover:scale-105 transition-transform duration-300">
+                                <i class="fas fa-folder-open mr-2"></i>ဖိုင်ရွေးရန်
+                            </button>
+                            <button onclick="openCamera()" 
+                                    class="bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-6 rounded-xl font-bold hover:scale-105 transition-transform duration-300">
+                                <i class="fas fa-camera mr-2"></i>ကင်မရာ
+                            </button>
+                        </div>
+                        <p class="text-gray-400 text-xs mt-3">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            JPG, PNG, WebP ဖိုင်များ (အများဆုံး 5MB/ဖိုင်)
+                        </p>
+                    </div>
+                    
+                    <!-- File Input (Hidden) -->
+                    <input type="file" id="fileInput" accept="image/*" multiple style="display: none;">
+                    
+                    <!-- Camera Preview -->
+                    <div id="cameraPreview" class="camera-preview">
+                        <video id="cameraVideo" autoplay></video>
+                        <div class="camera-controls">
+                            <button onclick="takePhoto()" class="bg-red-500 text-white w-16 h-16 rounded-full hover:scale-110 transition-transform duration-300">
+                                <i class="fas fa-camera text-xl"></i>
+                            </button>
+                            <button onclick="closeCamera()" class="bg-gray-700 text-white w-12 h-12 rounded-full hover:scale-110 transition-transform duration-300">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Upload Progress -->
+                    <div id="uploadProgress" class="hidden">
+                        <div class="flex justify-between text-sm text-gray-300 mb-1">
+                            <span>တင်နေသည်...</span>
+                            <span id="uploadPercentage">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Image Preview -->
+                    <div id="imagePreview" class="image-preview mt-4"></div>
+                    
+                    <!-- Image URLs (Hidden, for editing) -->
+                    <textarea id="imgLinks" class="hidden"></textarea>
+                </div>
             </div>
             
             <div class="flex items-center gap-3 p-4 bg-yellow-500/10 rounded-2xl border border-yellow-500/20">
@@ -337,6 +492,83 @@
 
     <!-- Posts Feed -->
     <div id="postFeed" class="max-w-md mx-auto px-4"></div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+        <div class="glass rounded-3xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-black text-yellow-400">
+                    <i class="fas fa-edit mr-2"></i>Post ပြင်ဆင်ရန်
+                </h2>
+                <button onclick="closeEditModal()" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-pink-400 font-bold mb-2 text-sm">
+                        <i class="fas fa-user mr-2"></i>နာမည်
+                    </label>
+                    <input type="text" id="editName" class="w-full p-4 rounded-2xl input-field text-lg">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-pink-400 font-bold mb-2 text-sm">
+                            <i class="fas fa-birthday-cake mr-2"></i>အသက်
+                        </label>
+                        <input type="number" id="editAge" class="w-full p-4 rounded-2xl input-field">
+                    </div>
+                    <div>
+                        <label class="block text-pink-400 font-bold mb-2 text-sm">
+                            <i class="fas fa-clock mr-2"></i>အချိန်
+                        </label>
+                        <input type="text" id="editTime" class="w-full p-4 rounded-2xl input-field">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-pink-400 font-bold mb-2 text-sm">
+                        <i class="fas fa-money-bill-wave mr-2"></i>စျေးနှုန်း
+                    </label>
+                    <input type="text" id="editPrice" class="w-full p-4 rounded-2xl input-field">
+                </div>
+                
+                <div class="flex items-center gap-3 p-4 bg-yellow-500/10 rounded-2xl border border-yellow-500/20">
+                    <input type="checkbox" id="editResting" class="w-6 h-6 rounded accent-yellow-500">
+                    <label for="editResting" class="text-yellow-400 font-bold">
+                        <i class="fas fa-clock mr-2"></i>ယာယီနားထားမည်
+                    </label>
+                </div>
+                
+                <!-- Image Management for Editing -->
+                <div class="glass p-4 rounded-2xl border border-white/10">
+                    <label class="block text-pink-400 font-bold mb-2">
+                        <i class="fas fa-images mr-2"></i>ပုံများပြင်ဆင်ရန်
+                    </label>
+                    <div id="editImagePreview" class="image-preview mb-4"></div>
+                    
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <button onclick="document.getElementById('editFileInput').click()" 
+                                class="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-xl font-bold text-sm hover:scale-105 transition-transform duration-300">
+                            <i class="fas fa-plus mr-2"></i>ပုံအသစ်ထည့်မည်
+                        </button>
+                        <input type="file" id="editFileInput" accept="image/*" multiple style="display: none;">
+                    </div>
+                </div>
+                
+                <div class="flex gap-3 pt-4">
+                    <button onclick="saveEdit()" class="flex-1 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white py-4 rounded-2xl shadow-xl font-bold transition-all duration-300 hover:scale-[1.02]">
+                        <i class="fas fa-save mr-2"></i>သိမ်းမည်
+                    </button>
+                    <button onclick="closeEditModal()" class="flex-1 bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-800 hover:to-gray-900 text-white py-4 rounded-2xl shadow-xl font-bold transition-all duration-300 hover:scale-[1.02]">
+                        <i class="fas fa-times mr-2"></i>မသိမ်းပါ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Bottom Navigation -->
     <div class="fixed bottom-0 left-0 right-0 glass border-t border-white/10 py-3 z-40 shadow-2xl">
@@ -369,7 +601,13 @@
         // FIREBASE CONFIGURATION
         // ============================================
         const firebaseConfig = {
-            databaseURL: "https://darkside-777-default-rtdb.firebaseio.com/"
+            apiKey: "AIzaSyC4pLZv8Gp7X9qY6qJ6wKZkLmN8wQ6rT6s",
+            authDomain: "darkside-777.firebaseapp.com",
+            databaseURL: "https://darkside-777-default-rtdb.firebaseio.com",
+            projectId: "darkside-777",
+            storageBucket: "darkside-777.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef1234567890"
         };
         
         // Initialize Firebase
@@ -380,6 +618,7 @@
         }
         
         const db = firebase.database().ref('posts');
+        const storage = firebase.storage();
         
         // ============================================
         // DOM ELEMENTS
@@ -391,12 +630,379 @@
         const availableCount = document.getElementById('availableCount');
         const restingCount = document.getElementById('restingCount');
         const refreshBtn = document.getElementById('refreshBtn');
+        const editModal = document.getElementById('editModal');
         
         // ============================================
         // APP STATE
         // ============================================
         let isAdmin = false;
         let currentPosts = [];
+        let uploadedImages = []; // For new posts
+        let editingImages = []; // For editing posts
+        let editingPostId = null;
+        let cameraStream = null;
+        
+        // ============================================
+        // IMAGE UPLOAD FUNCTIONS
+        // ============================================
+        
+        // Initialize image upload
+        function initializeImageUpload() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const imagePreview = document.getElementById('imagePreview');
+            
+            // Click to select files
+            uploadArea.addEventListener('click', (e) => {
+                if (!e.target.closest('button')) {
+                    fileInput.click();
+                }
+            });
+            
+            // Drag and drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                handleImageFiles(files);
+            });
+            
+            // File input change
+            fileInput.addEventListener('change', (e) => {
+                handleImageFiles(e.target.files);
+                fileInput.value = '';
+            });
+            
+            // Initialize for editing
+            const editFileInput = document.getElementById('editFileInput');
+            editFileInput.addEventListener('change', (e) => {
+                handleEditImageFiles(e.target.files);
+                editFileInput.value = '';
+            });
+        }
+        
+        // Handle image files
+        function handleImageFiles(files) {
+            const validFiles = Array.from(files).filter(file => {
+                return file.type.startsWith('image/') && file.size <= 5 * 1024 * 1024;
+            });
+            
+            if (validFiles.length === 0) {
+                showNotification('❌ မှန်ကန်သော ပုံဖိုင်များကိုသာ တင်ပါ', 'error');
+                return;
+            }
+            
+            // Process each file
+            validFiles.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const imageData = e.target.result;
+                    uploadedImages.push({
+                        file: file,
+                        preview: imageData,
+                        url: null // Will be set after upload
+                    });
+                    updateImagePreview();
+                };
+                reader.readAsDataURL(file);
+            });
+            
+            showNotification(`✅ ${validFiles.length} ပုံထည့်ပြီးပါပြီ`, 'success');
+        }
+        
+        // Handle edit image files
+        function handleEditImageFiles(files) {
+            const validFiles = Array.from(files).filter(file => {
+                return file.type.startsWith('image/') && file.size <= 5 * 1024 * 1024;
+            });
+            
+            if (validFiles.length === 0) {
+                showNotification('❌ မှန်ကန်သော ပုံဖိုင်များကိုသာ တင်ပါ', 'error');
+                return;
+            }
+            
+            // Process each file
+            validFiles.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const imageData = e.target.result;
+                    editingImages.push({
+                        file: file,
+                        preview: imageData,
+                        url: null,
+                        isNew: true
+                    });
+                    updateEditImagePreview();
+                };
+                reader.readAsDataURL(file);
+            });
+            
+            showNotification(`✅ ${validFiles.length} ပုံထည့်ပြီးပါပြီ`, 'success');
+        }
+        
+        // Update image preview for new posts
+        function updateImagePreview() {
+            const imagePreview = document.getElementById('imagePreview');
+            imagePreview.innerHTML = '';
+            
+            uploadedImages.forEach((image, index) => {
+                const div = document.createElement('div');
+                div.className = 'image-preview-item';
+                div.innerHTML = `
+                    <img src="${image.preview}" alt="Preview ${index + 1}">
+                    <button onclick="removeImage(${index})" class="remove-image-btn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                imagePreview.appendChild(div);
+            });
+            
+            // Update hidden textarea with image URLs
+            document.getElementById('imgLinks').value = uploadedImages.map(img => img.url || '').join(',');
+        }
+        
+        // Update image preview for editing
+        function updateEditImagePreview() {
+            const editImagePreview = document.getElementById('editImagePreview');
+            editImagePreview.innerHTML = '';
+            
+            editingImages.forEach((image, index) => {
+                const div = document.createElement('div');
+                div.className = 'image-preview-item';
+                div.innerHTML = `
+                    <img src="${image.preview || image.url}" alt="Preview ${index + 1}">
+                    <button onclick="removeEditImage(${index})" class="remove-image-btn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    ${image.isNew ? '<span class="absolute top-5 left-5 bg-green-500 text-white text-xs px-1 rounded">အသစ်</span>' : ''}
+                `;
+                editImagePreview.appendChild(div);
+            });
+        }
+        
+        // Remove image from new post
+        function removeImage(index) {
+            uploadedImages.splice(index, 1);
+            updateImagePreview();
+        }
+        
+        // Remove image from editing
+        function removeEditImage(index) {
+            editingImages.splice(index, 1);
+            updateEditImagePreview();
+        }
+        
+        // Upload images to Firebase Storage
+        async function uploadImages() {
+            if (uploadedImages.length === 0) {
+                showNotification('❌ အနည်းဆုံး ပုံတစ်ပုံတင်ပေးပါ', 'error');
+                return null;
+            }
+            
+            const uploadProgress = document.getElementById('uploadProgress');
+            const progressFill = document.getElementById('progressFill');
+            const uploadPercentage = document.getElementById('uploadPercentage');
+            
+            uploadProgress.classList.remove('hidden');
+            
+            const imageUrls = [];
+            const totalImages = uploadedImages.length;
+            let completed = 0;
+            
+            for (let i = 0; i < uploadedImages.length; i++) {
+                const image = uploadedImages[i];
+                if (image.url) {
+                    // Already uploaded
+                    imageUrls.push(image.url);
+                    completed++;
+                    updateUploadProgress(completed, totalImages, progressFill, uploadPercentage);
+                    continue;
+                }
+                
+                try {
+                    const fileName = `images/${Date.now()}_${i}_${image.file.name}`;
+                    const storageRef = storage.ref(fileName);
+                    const uploadTask = storageRef.put(image.file);
+                    
+                    await new Promise((resolve, reject) => {
+                        uploadTask.on('state_changed',
+                            (snapshot) => {
+                                // Progress monitoring if needed
+                            },
+                            (error) => {
+                                reject(error);
+                            },
+                            async () => {
+                                const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                                image.url = downloadURL;
+                                imageUrls.push(downloadURL);
+                                completed++;
+                                updateUploadProgress(completed, totalImages, progressFill, uploadPercentage);
+                                resolve();
+                            }
+                        );
+                    });
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    showNotification(`❌ ပုံတင်ရာတွင် အမှားဖြစ်နေသည်: ${error.message}`, 'error');
+                    return null;
+                }
+            }
+            
+            uploadProgress.classList.add('hidden');
+            return imageUrls;
+        }
+        
+        // Upload edit images
+        async function uploadEditImages() {
+            const newImages = editingImages.filter(img => img.isNew && !img.url);
+            
+            if (newImages.length === 0) {
+                // No new images to upload
+                return editingImages.map(img => img.url || img.preview).filter(url => url);
+            }
+            
+            const uploadProgress = document.getElementById('uploadProgress');
+            const progressFill = document.getElementById('progressFill');
+            const uploadPercentage = document.getElementById('uploadPercentage');
+            
+            uploadProgress.classList.remove('hidden');
+            
+            const totalImages = newImages.length;
+            let completed = 0;
+            
+            for (let i = 0; i < newImages.length; i++) {
+                const image = newImages[i];
+                
+                try {
+                    const fileName = `images/${Date.now()}_${i}_${image.file.name}`;
+                    const storageRef = storage.ref(fileName);
+                    const uploadTask = storageRef.put(image.file);
+                    
+                    await new Promise((resolve, reject) => {
+                        uploadTask.on('state_changed',
+                            (snapshot) => {
+                                // Progress monitoring
+                            },
+                            (error) => {
+                                reject(error);
+                            },
+                            async () => {
+                                const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                                image.url = downloadURL;
+                                completed++;
+                                updateUploadProgress(completed, totalImages, progressFill, uploadPercentage);
+                                resolve();
+                            }
+                        );
+                    });
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    showNotification(`❌ ပုံတင်ရာတွင် အမှားဖြစ်နေသည်: ${error.message}`, 'error');
+                    return null;
+                }
+            }
+            
+            uploadProgress.classList.add('hidden');
+            return editingImages.map(img => img.url).filter(url => url);
+        }
+        
+        // Update upload progress
+        function updateUploadProgress(completed, total, progressFill, uploadPercentage) {
+            const percentage = Math.round((completed / total) * 100);
+            progressFill.style.width = `${percentage}%`;
+            uploadPercentage.textContent = `${percentage}%`;
+        }
+        
+        // ============================================
+        // CAMERA FUNCTIONS
+        // ============================================
+        
+        // Open camera
+        async function openCamera() {
+            try {
+                const constraints = {
+                    video: {
+                        facingMode: 'user',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: false
+                };
+                
+                cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                const cameraVideo = document.getElementById('cameraVideo');
+                const cameraPreview = document.getElementById('cameraPreview');
+                const uploadArea = document.getElementById('uploadArea');
+                
+                cameraVideo.srcObject = cameraStream;
+                cameraPreview.style.display = 'block';
+                uploadArea.style.display = 'none';
+                
+                showNotification('📸 ကင်မရာဖွင့်ပြီးပါပြီ', 'info');
+            } catch (error) {
+                console.error('Camera error:', error);
+                showNotification('❌ ကင်မရာဖွင့်၍မရပါ', 'error');
+            }
+        }
+        
+        // Take photo
+        function takePhoto() {
+            const cameraVideo = document.getElementById('cameraVideo');
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            canvas.width = cameraVideo.videoWidth;
+            canvas.height = cameraVideo.videoHeight;
+            
+            // Flip horizontally for mirror effect
+            context.translate(canvas.width, 0);
+            context.scale(-1, 1);
+            context.drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
+            
+            // Convert to blob
+            canvas.toBlob((blob) => {
+                const file = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    uploadedImages.push({
+                        file: file,
+                        preview: e.target.result,
+                        url: null
+                    });
+                    updateImagePreview();
+                    closeCamera();
+                    showNotification('✅ ပုံရိုက်ယူပြီးပါပြီ', 'success');
+                };
+                reader.readAsDataURL(blob);
+            }, 'image/jpeg', 0.9);
+        }
+        
+        // Close camera
+        function closeCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            
+            const cameraPreview = document.getElementById('cameraPreview');
+            const uploadArea = document.getElementById('uploadArea');
+            const cameraVideo = document.getElementById('cameraVideo');
+            
+            cameraPreview.style.display = 'none';
+            uploadArea.style.display = 'block';
+            cameraVideo.srcObject = null;
+        }
         
         // ============================================
         // ADMIN FUNCTIONS
@@ -414,7 +1020,6 @@
                     document.getElementById('adminBtn').classList.remove('shake');
                 }, 500);
                 
-                // Show success notification
                 showNotification('✅ Admin အကောင့်သို့ ဝင်ရောက်ပြီးပါပြီ', 'success');
             } else if (password) {
                 showNotification('❌ ကုဒ်မှားနေပါသည်', 'error');
@@ -433,19 +1038,21 @@
             document.getElementById('ageIn').value = '';
             document.getElementById('timeIn').value = '';
             document.getElementById('priceIn').value = '';
-            document.getElementById('imgLinks').value = '';
             document.getElementById('restingIn').checked = false;
+            
+            // Clear images
+            uploadedImages = [];
+            updateImagePreview();
             
             showNotification('📝 Form ရှင်းလင်းပြီးပါပြီ', 'info');
         }
         
         // Publish New Post
-        function publishPost() {
+        async function publishPost() {
             const name = document.getElementById('nameIn').value.trim();
             const age = document.getElementById('ageIn').value.trim();
             const time = document.getElementById('timeIn').value.trim();
             const price = document.getElementById('priceIn').value.trim();
-            const imgInput = document.getElementById('imgLinks').value.trim();
             const isResting = document.getElementById('restingIn').checked;
             
             // Validation
@@ -455,16 +1062,12 @@
                 return;
             }
             
-            if (!imgInput) {
-                showNotification('❌ ပုံ link အနည်းဆုံးတစ်ခုထည့်ပါ', 'error');
-                document.getElementById('imgLinks').focus();
-                return;
-            }
+            // Upload images
+            showNotification('🔼 ပုံများတင်နေပါသည်...', 'info');
+            const imageUrls = await uploadImages();
             
-            const images = imgInput.split(',').map(s => s.trim()).filter(s => s.length > 0);
-            
-            if (images.length === 0) {
-                showNotification('❌ မှန်ကန်သော ပုံ link ထည့်ပေးပါ', 'error');
+            if (!imageUrls || imageUrls.length === 0) {
+                showNotification('❌ အနည်းဆုံးပုံတစ်ပုံတင်ပေးပါ', 'error');
                 return;
             }
             
@@ -474,7 +1077,7 @@
                 age: age || "N/A",
                 time: time || "24/7",
                 price: price || "စျေးနှုန်းမေးမည်",
-                images,
+                images: imageUrls,
                 isResting,
                 createdAt: Date.now(),
                 updatedAt: Date.now()
@@ -485,10 +1088,91 @@
                 .then(() => {
                     showNotification('✅ Post တင်ပြီးပါပြီ', 'success');
                     clearForm();
+                    closeAdmin();
                 })
                 .catch((error) => {
                     showNotification(`❌ Error: ${error.message}`, 'error');
                 });
+        }
+        
+        // Open Edit Modal
+        function openEditModal(postId) {
+            if (!isAdmin) {
+                showNotification('⚠️ Admin အကောင့်ဖြင့်သာ ပြင်ဆင်နိုင်ပါသည်', 'warning');
+                return;
+            }
+            
+            const post = currentPosts.find(p => p.id === postId);
+            if (!post) return;
+            
+            editingPostId = postId;
+            editingImages = post.images.map(url => ({ url, preview: url, isNew: false }));
+            
+            // Fill form with post data
+            document.getElementById('editName').value = post.name || '';
+            document.getElementById('editAge').value = post.age || '';
+            document.getElementById('editTime').value = post.time || '';
+            document.getElementById('editPrice').value = post.price || '';
+            document.getElementById('editResting').checked = post.isResting || false;
+            
+            updateEditImagePreview();
+            editModal.classList.remove('hidden');
+        }
+        
+        // Close Edit Modal
+        function closeEditModal() {
+            editModal.classList.add('hidden');
+            editingPostId = null;
+            editingImages = [];
+        }
+        
+        // Save Edit
+        async function saveEdit() {
+            const name = document.getElementById('editName').value.trim();
+            const age = document.getElementById('editAge').value.trim();
+            const time = document.getElementById('editTime').value.trim();
+            const price = document.getElementById('editPrice').value.trim();
+            const isResting = document.getElementById('editResting').checked;
+            
+            if (!name) {
+                showNotification('❌ နာမည်ထည့်ပေးပါ', 'error');
+                return;
+            }
+            
+            // Upload new images if any
+            let imageUrls = editingImages.map(img => img.url).filter(url => url);
+            
+            const hasNewImages = editingImages.some(img => img.isNew && !img.url);
+            if (hasNewImages) {
+                showNotification('🔼 ပုံအသစ်များတင်နေပါသည်...', 'info');
+                const uploadedUrls = await uploadEditImages();
+                if (uploadedUrls) {
+                    imageUrls = uploadedUrls;
+                }
+            }
+            
+            if (imageUrls.length === 0) {
+                showNotification('❌ အနည်းဆုံးပုံတစ်ပုံရှိရပါမည်', 'error');
+                return;
+            }
+            
+            // Update post in Firebase
+            db.child(editingPostId).update({
+                name,
+                age: age || "N/A",
+                time: time || "24/7",
+                price: price || "စျေးနှုန်းမေးမည်",
+                images: imageUrls,
+                isResting,
+                updatedAt: Date.now()
+            })
+            .then(() => {
+                showNotification('✅ Post ပြင်ဆင်ပြီးပါပြီ', 'success');
+                closeEditModal();
+            })
+            .catch((error) => {
+                showNotification(`❌ Error: ${error.message}`, 'error');
+            });
         }
         
         // Update Resting Status
@@ -562,7 +1246,6 @@
         
         // Show Notification
         function showNotification(message, type) {
-            // Remove existing notification
             const existingNotification = document.querySelector('.notification');
             if (existingNotification) {
                 existingNotification.remove();
@@ -588,7 +1271,6 @@
             
             document.body.appendChild(notification);
             
-            // Auto remove after 3 seconds
             setTimeout(() => {
                 if (notification.parentNode) {
                     notification.style.opacity = '0';
@@ -691,7 +1373,7 @@
                                 ` : `
                                     <!-- AVAILABLE: SHOW ACTUAL IMAGES -->
                                     <div class="slider-container p-4">
-                                        ${post.images.map(img => `
+                                        ${(post.images || []).map(img => `
                                             <img src="${img}" 
                                                  class="slide-item" 
                                                  onerror="this.src='https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'"
@@ -710,7 +1392,7 @@
                                     <!-- Image Count Indicator -->
                                     <div class="absolute bottom-4 right-4 bg-black/70 px-3 py-1 rounded-full">
                                         <span class="text-white text-xs font-bold">
-                                            <i class="fas fa-image mr-1"></i>${post.images.length}
+                                            <i class="fas fa-image mr-1"></i>${(post.images || []).length}
                                         </span>
                                     </div>
                                 `}
@@ -751,15 +1433,19 @@
                                 <!-- ADMIN CONTROLS -->
                                 ${isAdmin ? `
                                     <div class="admin-controls rounded-2xl p-4 mt-6">
-                                        <div class="flex gap-3">
+                                        <div class="grid grid-cols-3 gap-2">
+                                            <button onclick="openEditModal('${post.id}')" 
+                                                    class="bg-gradient-to-r from-blue-600 to-blue-700 hover:opacity-90 text-white py-3 rounded-xl font-bold text-sm transition-all duration-300 hover:scale-[1.02]">
+                                                <i class="fas fa-edit mr-1"></i> ပြင်မည်
+                                            </button>
                                             <button onclick="updateRest('${post.id}', ${!post.isResting})" 
-                                                    class="flex-1 bg-gradient-to-r ${post.isResting ? 'from-green-600 to-emerald-700' : 'from-yellow-600 to-amber-700'} hover:opacity-90 text-white py-3 rounded-xl font-bold text-sm transition-all duration-300 hover:scale-[1.02]">
-                                                <i class="fas fa-power-off mr-2"></i> 
+                                                    class="bg-gradient-to-r ${post.isResting ? 'from-green-600 to-emerald-700' : 'from-yellow-600 to-amber-700'} hover:opacity-90 text-white py-3 rounded-xl font-bold text-sm transition-all duration-300 hover:scale-[1.02]">
+                                                <i class="fas fa-power-off mr-1"></i> 
                                                 ${post.isResting ? 'ဖွင့်မည်' : 'နားမည်'}
                                             </button>
                                             <button onclick="deletePost('${post.id}')" 
-                                                    class="flex-1 bg-gradient-to-r from-red-600 to-rose-700 hover:opacity-90 text-white py-3 rounded-xl font-bold text-sm transition-all duration-300 hover:scale-[1.02]">
-                                                <i class="fas fa-trash mr-2"></i> ဖျက်မည်
+                                                    class="bg-gradient-to-r from-red-600 to-rose-700 hover:opacity-90 text-white py-3 rounded-xl font-bold text-sm transition-all duration-300 hover:scale-[1.02]">
+                                                <i class="fas fa-trash mr-1"></i> ဖျက်မည်
                                             </button>
                                         </div>
                                         <p class="text-gray-400 text-xs mt-3 text-center">
@@ -796,6 +1482,9 @@
         // INITIALIZE APP
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize image upload
+            initializeImageUpload();
+            
             // Load posts
             loadPosts();
             
@@ -821,6 +1510,13 @@
                 });
             }
             
+            // Close edit modal when clicking outside
+            editModal.addEventListener('click', function(event) {
+                if (event.target === editModal) {
+                    closeEditModal();
+                }
+            });
+            
             // Add keyboard shortcuts
             document.addEventListener('keydown', function(event) {
                 // Ctrl + A to open admin (Windows/Linux)
@@ -830,9 +1526,13 @@
                     openAdminPanel();
                 }
                 
-                // Escape to close admin
+                // Escape to close admin/edit modal
                 if (event.key === 'Escape') {
-                    closeAdmin();
+                    if (!editModal.classList.contains('hidden')) {
+                        closeEditModal();
+                    } else {
+                        closeAdmin();
+                    }
                 }
                 
                 // F5 to refresh
@@ -850,7 +1550,7 @@
         window.addEventListener('error', function(e) {
             if (e.target.tagName === 'IMG') {
                 e.target.src = 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80';
-                e.target.onerror = null; // Prevent infinite loop
+                e.target.onerror = null;
             }
         }, true);
         
