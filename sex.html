@@ -426,7 +426,7 @@
                         </div>
                         <p class="text-gray-400 text-xs mt-3">
                             <i class="fas fa-info-circle mr-1"></i>
-                            JPG, PNG, WebP ဖိုင်များ (အများဆုံး 5MB/ဖိုင်)
+                            JPG, PNG, WebP ဖိုင်များ (မည်သည့်ဆိုဒ်မဆို၊ မြန်မြန်တင်မည်)
                         </p>
                     </div>
                     
@@ -601,13 +601,7 @@
         // FIREBASE CONFIGURATION
         // ============================================
         const firebaseConfig = {
-            apiKey: "AIzaSyC4pLZv8Gp7X9qY6qJ6wKZkLmN8wQ6rT6s",
-            authDomain: "darkside-777.firebaseapp.com",
-            databaseURL: "https://darkside-777-default-rtdb.firebaseio.com",
-            projectId: "darkside-777",
-            storageBucket: "darkside-777.appspot.com",
-            messagingSenderId: "123456789012",
-            appId: "1:123456789012:web:abcdef1234567890"
+            databaseURL: "https://darkside-777-default-rtdb.firebaseio.com/"
         };
         
         // Initialize Firebase
@@ -618,7 +612,6 @@
         }
         
         const db = firebase.database().ref('posts');
-        const storage = firebase.storage();
         
         // ============================================
         // DOM ELEMENTS
@@ -643,14 +636,13 @@
         let cameraStream = null;
         
         // ============================================
-        // IMAGE UPLOAD FUNCTIONS
+        // IMAGE UPLOAD FUNCTIONS - FAST VERSION
         // ============================================
         
         // Initialize image upload
         function initializeImageUpload() {
             const uploadArea = document.getElementById('uploadArea');
             const fileInput = document.getElementById('fileInput');
-            const imagePreview = document.getElementById('imagePreview');
             
             // Click to select files
             uploadArea.addEventListener('click', (e) => {
@@ -690,18 +682,16 @@
             });
         }
         
-        // Handle image files
+        // Handle image files - FAST VERSION (no size limit, no file type check)
         function handleImageFiles(files) {
-            const validFiles = Array.from(files).filter(file => {
-                return file.type.startsWith('image/') && file.size <= 5 * 1024 * 1024;
-            });
+            const validFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
             
             if (validFiles.length === 0) {
-                showNotification('❌ မှန်ကန်သော ပုံဖိုင်များကိုသာ တင်ပါ', 'error');
+                showNotification('❌ ပုံဖိုင်များကိုသာ တင်ပါ', 'error');
                 return;
             }
             
-            // Process each file
+            // Process each file immediately
             validFiles.forEach(file => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -709,7 +699,7 @@
                     uploadedImages.push({
                         file: file,
                         preview: imageData,
-                        url: null // Will be set after upload
+                        url: imageData // Use Base64 immediately for speed
                     });
                     updateImagePreview();
                 };
@@ -721,16 +711,13 @@
         
         // Handle edit image files
         function handleEditImageFiles(files) {
-            const validFiles = Array.from(files).filter(file => {
-                return file.type.startsWith('image/') && file.size <= 5 * 1024 * 1024;
-            });
+            const validFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
             
             if (validFiles.length === 0) {
-                showNotification('❌ မှန်ကန်သော ပုံဖိုင်များကိုသာ တင်ပါ', 'error');
+                showNotification('❌ ပုံဖိုင်များကိုသာ တင်ပါ', 'error');
                 return;
             }
             
-            // Process each file
             validFiles.forEach(file => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -738,7 +725,7 @@
                     editingImages.push({
                         file: file,
                         preview: imageData,
-                        url: null,
+                        url: imageData,
                         isNew: true
                     });
                     updateEditImagePreview();
@@ -766,8 +753,8 @@
                 imagePreview.appendChild(div);
             });
             
-            // Update hidden textarea with image URLs
-            document.getElementById('imgLinks').value = uploadedImages.map(img => img.url || '').join(',');
+            // Update hidden textarea with Base64 URLs
+            document.getElementById('imgLinks').value = uploadedImages.map(img => img.preview).join(',');
         }
         
         // Update image preview for editing
@@ -801,126 +788,33 @@
             updateEditImagePreview();
         }
         
-        // Upload images to Firebase Storage
+        // Upload images to Firebase Storage - FAST VERSION (Use Base64 directly)
         async function uploadImages() {
             if (uploadedImages.length === 0) {
                 showNotification('❌ အနည်းဆုံး ပုံတစ်ပုံတင်ပေးပါ', 'error');
                 return null;
             }
             
-            const uploadProgress = document.getElementById('uploadProgress');
-            const progressFill = document.getElementById('progressFill');
-            const uploadPercentage = document.getElementById('uploadPercentage');
+            // Use Base64 directly - no Firebase Storage needed
+            // This is INSTANT, no waiting for upload
+            const imageUrls = uploadedImages.map(img => img.preview);
             
-            uploadProgress.classList.remove('hidden');
-            
-            const imageUrls = [];
-            const totalImages = uploadedImages.length;
-            let completed = 0;
-            
-            for (let i = 0; i < uploadedImages.length; i++) {
-                const image = uploadedImages[i];
-                if (image.url) {
-                    // Already uploaded
-                    imageUrls.push(image.url);
-                    completed++;
-                    updateUploadProgress(completed, totalImages, progressFill, uploadPercentage);
-                    continue;
-                }
-                
-                try {
-                    const fileName = `images/${Date.now()}_${i}_${image.file.name}`;
-                    const storageRef = storage.ref(fileName);
-                    const uploadTask = storageRef.put(image.file);
-                    
-                    await new Promise((resolve, reject) => {
-                        uploadTask.on('state_changed',
-                            (snapshot) => {
-                                // Progress monitoring if needed
-                            },
-                            (error) => {
-                                reject(error);
-                            },
-                            async () => {
-                                const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-                                image.url = downloadURL;
-                                imageUrls.push(downloadURL);
-                                completed++;
-                                updateUploadProgress(completed, totalImages, progressFill, uploadPercentage);
-                                resolve();
-                            }
-                        );
-                    });
-                } catch (error) {
-                    console.error('Upload error:', error);
-                    showNotification(`❌ ပုံတင်ရာတွင် အမှားဖြစ်နေသည်: ${error.message}`, 'error');
-                    return null;
-                }
-            }
-            
-            uploadProgress.classList.add('hidden');
+            showNotification('✅ ပုံများအဆင်သင့်ဖြစ်ပါပြီ', 'success');
             return imageUrls;
         }
         
-        // Upload edit images
+        // Upload edit images - FAST VERSION
         async function uploadEditImages() {
-            const newImages = editingImages.filter(img => img.isNew && !img.url);
-            
-            if (newImages.length === 0) {
-                // No new images to upload
-                return editingImages.map(img => img.url || img.preview).filter(url => url);
-            }
-            
-            const uploadProgress = document.getElementById('uploadProgress');
-            const progressFill = document.getElementById('progressFill');
-            const uploadPercentage = document.getElementById('uploadPercentage');
-            
-            uploadProgress.classList.remove('hidden');
-            
-            const totalImages = newImages.length;
-            let completed = 0;
-            
-            for (let i = 0; i < newImages.length; i++) {
-                const image = newImages[i];
-                
-                try {
-                    const fileName = `images/${Date.now()}_${i}_${image.file.name}`;
-                    const storageRef = storage.ref(fileName);
-                    const uploadTask = storageRef.put(image.file);
-                    
-                    await new Promise((resolve, reject) => {
-                        uploadTask.on('state_changed',
-                            (snapshot) => {
-                                // Progress monitoring
-                            },
-                            (error) => {
-                                reject(error);
-                            },
-                            async () => {
-                                const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-                                image.url = downloadURL;
-                                completed++;
-                                updateUploadProgress(completed, totalImages, progressFill, uploadPercentage);
-                                resolve();
-                            }
-                        );
-                    });
-                } catch (error) {
-                    console.error('Upload error:', error);
-                    showNotification(`❌ ပုံတင်ရာတွင် အမှားဖြစ်နေသည်: ${error.message}`, 'error');
-                    return null;
+            // Use Base64 directly for new images
+            // Keep existing URLs as they are
+            const imageUrls = editingImages.map(img => {
+                if (img.isNew && !img.url) {
+                    return img.preview; // Base64 for new images
                 }
-            }
+                return img.url; // Existing URL
+            }).filter(url => url);
             
-            uploadProgress.classList.add('hidden');
-            return editingImages.map(img => img.url).filter(url => url);
-        }
-        
-        // Update upload progress
-        function updateUploadProgress(completed, total, progressFill, uploadPercentage) {
-            const percentage = Math.round((completed / total) * 100);
-            progressFill.style.width = `${percentage}%`;
-            uploadPercentage.textContent = `${percentage}%`;
+            return imageUrls;
         }
         
         // ============================================
@@ -933,8 +827,8 @@
                 const constraints = {
                     video: {
                         facingMode: 'user',
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
+                        width: { ideal: 640 }, // Lower resolution for speed
+                        height: { ideal: 480 }
                     },
                     audio: false
                 };
@@ -955,37 +849,30 @@
             }
         }
         
-        // Take photo
+        // Take photo - FAST VERSION
         function takePhoto() {
             const cameraVideo = document.getElementById('cameraVideo');
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             
-            canvas.width = cameraVideo.videoWidth;
-            canvas.height = cameraVideo.videoHeight;
+            // Lower resolution for speed
+            canvas.width = 640;
+            canvas.height = 480;
             
-            // Flip horizontally for mirror effect
-            context.translate(canvas.width, 0);
-            context.scale(-1, 1);
             context.drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
             
-            // Convert to blob
-            canvas.toBlob((blob) => {
-                const file = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
-                
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    uploadedImages.push({
-                        file: file,
-                        preview: e.target.result,
-                        url: null
-                    });
-                    updateImagePreview();
-                    closeCamera();
-                    showNotification('✅ ပုံရိုက်ယူပြီးပါပြီ', 'success');
-                };
-                reader.readAsDataURL(blob);
-            }, 'image/jpeg', 0.9);
+            // Convert to Base64 immediately (fastest method)
+            const imageData = canvas.toDataURL('image/jpeg', 0.7); // 70% quality for speed
+            
+            uploadedImages.push({
+                file: null,
+                preview: imageData,
+                url: imageData
+            });
+            
+            updateImagePreview();
+            closeCamera();
+            showNotification('✅ ပုံရိုက်ယူပြီးပါပြီ', 'success');
         }
         
         // Close camera
@@ -1047,7 +934,7 @@
             showNotification('📝 Form ရှင်းလင်းပြီးပါပြီ', 'info');
         }
         
-        // Publish New Post
+        // Publish New Post - FAST VERSION
         async function publishPost() {
             const name = document.getElementById('nameIn').value.trim();
             const age = document.getElementById('ageIn').value.trim();
@@ -1062,14 +949,13 @@
                 return;
             }
             
-            // Upload images
-            showNotification('🔼 ပုံများတင်နေပါသည်...', 'info');
-            const imageUrls = await uploadImages();
-            
-            if (!imageUrls || imageUrls.length === 0) {
+            if (uploadedImages.length === 0) {
                 showNotification('❌ အနည်းဆုံးပုံတစ်ပုံတင်ပေးပါ', 'error');
                 return;
             }
+            
+            // Get image URLs (already Base64, no upload needed)
+            const imageUrls = uploadedImages.map(img => img.preview);
             
             // Create new post object
             const newPost = {
@@ -1083,7 +969,7 @@
                 updatedAt: Date.now()
             };
             
-            // Push to Firebase
+            // Push to Firebase - INSTANT
             db.push(newPost)
                 .then(() => {
                     showNotification('✅ Post တင်ပြီးပါပြီ', 'success');
@@ -1106,7 +992,11 @@
             if (!post) return;
             
             editingPostId = postId;
-            editingImages = post.images.map(url => ({ url, preview: url, isNew: false }));
+            editingImages = post.images.map(url => ({ 
+                url, 
+                preview: url, 
+                isNew: false 
+            }));
             
             // Fill form with post data
             document.getElementById('editName').value = post.name || '';
@@ -1126,7 +1016,7 @@
             editingImages = [];
         }
         
-        // Save Edit
+        // Save Edit - FAST VERSION
         async function saveEdit() {
             const name = document.getElementById('editName').value.trim();
             const age = document.getElementById('editAge').value.trim();
@@ -1139,24 +1029,20 @@
                 return;
             }
             
-            // Upload new images if any
-            let imageUrls = editingImages.map(img => img.url).filter(url => url);
-            
-            const hasNewImages = editingImages.some(img => img.isNew && !img.url);
-            if (hasNewImages) {
-                showNotification('🔼 ပုံအသစ်များတင်နေပါသည်...', 'info');
-                const uploadedUrls = await uploadEditImages();
-                if (uploadedUrls) {
-                    imageUrls = uploadedUrls;
-                }
-            }
-            
-            if (imageUrls.length === 0) {
+            if (editingImages.length === 0) {
                 showNotification('❌ အနည်းဆုံးပုံတစ်ပုံရှိရပါမည်', 'error');
                 return;
             }
             
-            // Update post in Firebase
+            // Get image URLs (Base64 for new images, existing URLs for old ones)
+            const imageUrls = editingImages.map(img => {
+                if (img.isNew && img.preview) {
+                    return img.preview; // Base64 for new images
+                }
+                return img.url; // Existing URL
+            }).filter(url => url);
+            
+            // Update post in Firebase - INSTANT
             db.child(editingPostId).update({
                 name,
                 age: age || "N/A",
@@ -1223,7 +1109,7 @@
             setTimeout(() => {
                 refreshBtn.classList.remove('animate-spin');
                 loadPosts();
-            }, 800);
+            }, 500);
         }
         
         // Scroll to Top
@@ -1337,128 +1223,126 @@
                 
                 // Create HTML for each post
                 postList.forEach((post, index) => {
-                    setTimeout(() => {
-                        const card = document.createElement('div');
-                        card.className = `post-card glass rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl fade-in`;
-                        card.style.animationDelay = `${index * 0.1}s`;
-                        
-                        // Determine status
-                        const statusText = post.isResting ? "ယာယီနားထားပါသည်" : "ရရှိနိုင်ပါသည်";
-                        const statusColor = post.isResting ? "text-yellow-400" : "text-green-400";
-                        const statusIcon = post.isResting ? "fa-clock" : "fa-check-circle";
-                        const badgeClass = post.isResting ? "resting-badge" : "available-badge";
-                        
-                        card.innerHTML = `
-                            <div class="relative">
-                                <!-- IMAGE SECTION - DIFFERENT FOR RESTING VS AVAILABLE -->
-                                ${post.isResting ? `
-                                    <!-- RESTING: NO IMAGES, ONLY MESSAGE -->
-                                    <div class="slider-container p-4">
-                                        <div class="resting-image-placeholder">
-                                            <i class="fas fa-clock text-5xl text-yellow-500 mb-4 animate-pulse"></i>
-                                            <h3 class="text-xl font-black text-white mb-2">ယာယီနားထားပါသည်</h3>
-                                            <p class="text-gray-300 text-center text-sm px-4">
-                                                လက်ရှိဝန်ဆောင်မှု မရရှိပါ<br>
-                                                နောက်မှပြန်ဆက်သွယ်ပါမည်
-                                            </p>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Status Badge for Resting -->
-                                    <div class="absolute top-4 right-4 ${badgeClass} px-4 py-2 rounded-full shadow-lg">
-                                        <span class="text-white font-bold text-sm">
-                                            <i class="fas ${statusIcon} mr-2"></i>${statusText}
-                                        </span>
-                                    </div>
-                                ` : `
-                                    <!-- AVAILABLE: SHOW ACTUAL IMAGES -->
-                                    <div class="slider-container p-4">
-                                        ${(post.images || []).map(img => `
-                                            <img src="${img}" 
-                                                 class="slide-item" 
-                                                 onerror="this.src='https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'"
-                                                 alt="${post.name}"
-                                                 loading="lazy">
-                                        `).join('')}
-                                    </div>
-                                    
-                                    <!-- Status Badge for Available -->
-                                    <div class="absolute top-4 right-4 ${badgeClass} px-4 py-2 rounded-full shadow-lg">
-                                        <span class="text-white font-bold text-sm">
-                                            <i class="fas ${statusIcon} mr-2"></i>${statusText}
-                                        </span>
-                                    </div>
-                                    
-                                    <!-- Image Count Indicator -->
-                                    <div class="absolute bottom-4 right-4 bg-black/70 px-3 py-1 rounded-full">
-                                        <span class="text-white text-xs font-bold">
-                                            <i class="fas fa-image mr-1"></i>${(post.images || []).length}
-                                        </span>
-                                    </div>
-                                `}
-                            </div>
-                            
-                            <!-- POST DETAILS -->
-                            <div class="p-6 md:p-8">
-                                <div class="flex justify-between items-start mb-6">
-                                    <div class="flex-1">
-                                        <h2 class="text-3xl md:text-4xl font-black ${post.isResting ? 'text-gray-400' : 'text-white'} mb-2">
-                                            ${post.name}
-                                        </h2>
-                                        <div class="flex flex-wrap items-center gap-3 mt-3">
-                                            <span class="bg-pink-500/20 text-pink-400 px-3 py-1 rounded-full text-sm font-bold">
-                                                <i class="fas fa-user mr-1"></i>Age: ${post.age}
-                                            </span>
-                                            <span class="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm font-bold">
-                                                <i class="fas fa-clock mr-1"></i>${post.time}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="text-right ml-4">
-                                        <div class="text-2xl font-black text-white bg-gradient-to-r from-pink-600 to-purple-700 px-5 py-3 rounded-2xl shadow-lg min-w-[120px]">
-                                            ${post.price}
-                                        </div>
+                    const card = document.createElement('div');
+                    card.className = `post-card glass rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl fade-in`;
+                    card.style.animationDelay = `${index * 0.05}s`;
+                    
+                    // Determine status
+                    const statusText = post.isResting ? "ယာယီနားထားပါသည်" : "ရရှိနိုင်ပါသည်";
+                    const statusColor = post.isResting ? "text-yellow-400" : "text-green-400";
+                    const statusIcon = post.isResting ? "fa-clock" : "fa-check-circle";
+                    const badgeClass = post.isResting ? "resting-badge" : "available-badge";
+                    
+                    card.innerHTML = `
+                        <div class="relative">
+                            <!-- IMAGE SECTION - DIFFERENT FOR RESTING VS AVAILABLE -->
+                            ${post.isResting ? `
+                                <!-- RESTING: NO IMAGES, ONLY MESSAGE -->
+                                <div class="slider-container p-4">
+                                    <div class="resting-image-placeholder">
+                                        <i class="fas fa-clock text-5xl text-yellow-500 mb-4 animate-pulse"></i>
+                                        <h3 class="text-xl font-black text-white mb-2">ယာယီနားထားပါသည်</h3>
+                                        <p class="text-gray-300 text-center text-sm px-4">
+                                            လက်ရှိဝန်ဆောင်မှု မရရှိပါ<br>
+                                            နောက်မှပြန်ဆက်သွယ်ပါမည်
+                                        </p>
                                     </div>
                                 </div>
                                 
-                                <!-- CONTACT BUTTON -->
-                                <a href="https://www.facebook.com/profile.php?id=61586281884184" 
-                                   target="_blank"
-                                   class="block w-full btn-primary text-center py-4 rounded-3xl font-black text-xl mb-6 shadow-xl hover:shadow-2xl transition-all duration-300 ${post.isResting ? 'opacity-50 cursor-not-allowed' : ''}"
-                                   ${post.isResting ? 'onclick="return false;"' : ''}>
-                                   <i class="fab fa-facebook-messenger mr-3"></i> 
-                                   ${post.isResting ? 'ယာယီမဆက်သွယ်နိုင်ပါ' : 'ဆက်သွယ်ရန် (FB)'}
-                                </a>
+                                <!-- Status Badge for Resting -->
+                                <div class="absolute top-4 right-4 ${badgeClass} px-4 py-2 rounded-full shadow-lg">
+                                    <span class="text-white font-bold text-sm">
+                                        <i class="fas ${statusIcon} mr-2"></i>${statusText}
+                                    </span>
+                                </div>
+                            ` : `
+                                <!-- AVAILABLE: SHOW ACTUAL IMAGES -->
+                                <div class="slider-container p-4">
+                                    ${(post.images || []).map(img => `
+                                        <img src="${img}" 
+                                             class="slide-item" 
+                                             onerror="this.src='https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'"
+                                             alt="${post.name}"
+                                             loading="lazy">
+                                    `).join('')}
+                                </div>
                                 
-                                <!-- ADMIN CONTROLS -->
-                                ${isAdmin ? `
-                                    <div class="admin-controls rounded-2xl p-4 mt-6">
-                                        <div class="grid grid-cols-3 gap-2">
-                                            <button onclick="openEditModal('${post.id}')" 
-                                                    class="bg-gradient-to-r from-blue-600 to-blue-700 hover:opacity-90 text-white py-3 rounded-xl font-bold text-sm transition-all duration-300 hover:scale-[1.02]">
-                                                <i class="fas fa-edit mr-1"></i> ပြင်မည်
-                                            </button>
-                                            <button onclick="updateRest('${post.id}', ${!post.isResting})" 
-                                                    class="bg-gradient-to-r ${post.isResting ? 'from-green-600 to-emerald-700' : 'from-yellow-600 to-amber-700'} hover:opacity-90 text-white py-3 rounded-xl font-bold text-sm transition-all duration-300 hover:scale-[1.02]">
-                                                <i class="fas fa-power-off mr-1"></i> 
-                                                ${post.isResting ? 'ဖွင့်မည်' : 'နားမည်'}
-                                            </button>
-                                            <button onclick="deletePost('${post.id}')" 
-                                                    class="bg-gradient-to-r from-red-600 to-rose-700 hover:opacity-90 text-white py-3 rounded-xl font-bold text-sm transition-all duration-300 hover:scale-[1.02]">
-                                                <i class="fas fa-trash mr-1"></i> ဖျက်မည်
-                                            </button>
-                                        </div>
-                                        <p class="text-gray-400 text-xs mt-3 text-center">
-                                            <i class="far fa-clock mr-1"></i>
-                                            နောက်ဆုံးပြင်ဆင်ချိန်: ${formatDate(post.updatedAt || post.createdAt)}
-                                        </p>
-                                    </div>
-                                ` : ''}
-                            </div>
-                        `;
+                                <!-- Status Badge for Available -->
+                                <div class="absolute top-4 right-4 ${badgeClass} px-4 py-2 rounded-full shadow-lg">
+                                    <span class="text-white font-bold text-sm">
+                                        <i class="fas ${statusIcon} mr-2"></i>${statusText}
+                                    </span>
+                                </div>
+                                
+                                <!-- Image Count Indicator -->
+                                <div class="absolute bottom-4 right-4 bg-black/70 px-3 py-1 rounded-full">
+                                    <span class="text-white text-xs font-bold">
+                                        <i class="fas fa-image mr-1"></i>${(post.images || []).length}
+                                    </span>
+                                </div>
+                            `}
+                        </div>
                         
-                        postFeed.appendChild(card);
-                    }, index * 100);
+                        <!-- POST DETAILS -->
+                        <div class="p-6 md:p-8">
+                            <div class="flex justify-between items-start mb-6">
+                                <div class="flex-1">
+                                    <h2 class="text-3xl md:text-4xl font-black ${post.isResting ? 'text-gray-400' : 'text-white'} mb-2">
+                                        ${post.name}
+                                    </h2>
+                                    <div class="flex flex-wrap items-center gap-3 mt-3">
+                                        <span class="bg-pink-500/20 text-pink-400 px-3 py-1 rounded-full text-sm font-bold">
+                                            <i class="fas fa-user mr-1"></i>Age: ${post.age}
+                                        </span>
+                                        <span class="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm font-bold">
+                                            <i class="fas fa-clock mr-1"></i>${post.time}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="text-right ml-4">
+                                    <div class="text-2xl font-black text-white bg-gradient-to-r from-pink-600 to-purple-700 px-5 py-3 rounded-2xl shadow-lg min-w-[120px]">
+                                        ${post.price}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- CONTACT BUTTON -->
+                            <a href="https://www.facebook.com/profile.php?id=61586281884184" 
+                               target="_blank"
+                               class="block w-full btn-primary text-center py-4 rounded-3xl font-black text-xl mb-6 shadow-xl hover:shadow-2xl transition-all duration-300 ${post.isResting ? 'opacity-50 cursor-not-allowed' : ''}"
+                               ${post.isResting ? 'onclick="return false;"' : ''}>
+                               <i class="fab fa-facebook-messenger mr-3"></i> 
+                               ${post.isResting ? 'ယာယီမဆက်သွယ်နိုင်ပါ' : 'ဆက်သွယ်ရန် (FB)'}
+                            </a>
+                            
+                            <!-- ADMIN CONTROLS -->
+                            ${isAdmin ? `
+                                <div class="admin-controls rounded-2xl p-4 mt-6">
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <button onclick="openEditModal('${post.id}')" 
+                                                class="bg-gradient-to-r from-blue-600 to-blue-700 hover:opacity-90 text-white py-3 rounded-xl font-bold text-sm transition-all duration-300 hover:scale-[1.02]">
+                                            <i class="fas fa-edit mr-1"></i> ပြင်မည်
+                                        </button>
+                                        <button onclick="updateRest('${post.id}', ${!post.isResting})" 
+                                                class="bg-gradient-to-r ${post.isResting ? 'from-green-600 to-emerald-700' : 'from-yellow-600 to-amber-700'} hover:opacity-90 text-white py-3 rounded-xl font-bold text-sm transition-all duration-300 hover:scale-[1.02]">
+                                            <i class="fas fa-power-off mr-1"></i> 
+                                            ${post.isResting ? 'ဖွင့်မည်' : 'နားမည်'}
+                                        </button>
+                                        <button onclick="deletePost('${post.id}')" 
+                                                class="bg-gradient-to-r from-red-600 to-rose-700 hover:opacity-90 text-white py-3 rounded-xl font-bold text-sm transition-all duration-300 hover:scale-[1.02]">
+                                            <i class="fas fa-trash mr-1"></i> ဖျက်မည်
+                                        </button>
+                                    </div>
+                                    <p class="text-gray-400 text-xs mt-3 text-center">
+                                        <i class="far fa-clock mr-1"></i>
+                                        နောက်ဆုံးပြင်ဆင်ချိန်: ${formatDate(post.updatedAt || post.createdAt)}
+                                    </p>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                    
+                    postFeed.appendChild(card);
                 });
             }, (error) => {
                 console.error("Error loading posts:", error);
