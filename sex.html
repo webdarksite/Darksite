@@ -21,39 +21,96 @@
 <body class="pb-20">
 
     <div class="text-center py-10">
-        <h1 class="text-6xl font-black neon-text text-pink-500 tracking-tighter mb-4">DARKSIDE</h1>
+        <h1 id="adminTrigger" class="text-6xl font-black neon-text text-pink-500 tracking-tighter mb-4 cursor-pointer">DARKSIDE</h1>
         <p class="text-gray-200 text-lg font-bold px-6">
             Sexchat & dategirl & စပွန်ဆာများ <br>
             <span class="text-pink-400 font-black italic underline">Fb တို့ဆက်သွယ်ရန်နိုင်ပါသည်</span>
         </p>
     </div>
 
+    <div id="adminPanel" class="hidden glass m-4 p-6 rounded-3xl border-2 border-pink-500/50 max-w-md mx-auto sticky top-5 z-50">
+        <h2 class="text-xl font-bold text-yellow-400 mb-4 text-center underline">ADMIN POST PANEL</h2>
+        <div class="space-y-4 text-black font-bold">
+            <input type="text" id="nameIn" placeholder="နာမည်" class="w-full p-4 rounded-2xl">
+            <div class="flex gap-2">
+                <input type="number" id="ageIn" placeholder="အသက်" class="w-1/2 p-4 rounded-2xl">
+                <input type="text" id="timeIn" placeholder="အချိန်" class="w-1/2 p-4 rounded-2xl">
+            </div>
+            <input type="text" id="priceIn" placeholder="စျေးနှုန်း" class="w-full p-4 rounded-2xl">
+            <div class="bg-slate-800 p-4 rounded-2xl text-white">
+                <label class="block mb-2 text-pink-400">ပုံ Link (ကော်မာ ခံထည့်ပါ)</label>
+                <textarea id="imgLinks" placeholder="https://image1.jpg, https://image2.jpg" class="w-full p-2 text-black rounded-xl text-sm" rows="3"></textarea>
+            </div>
+            <button onclick="publishPost()" class="w-full bg-green-600 text-white py-4 rounded-2xl shadow-lg">POST အသစ်တင်မည်</button>
+            <button onclick="clearAllPosts()" class="w-full bg-red-600 text-white py-2 rounded-xl text-sm">Post အားလုံးဖျက်မည်</button>
+            <button onclick="closeAdmin()" class="w-full text-gray-400 text-xs mt-2 underline">ပိတ်မည်</button>
+        </div>
+    </div>
+
     <div id="postFeed" class="max-w-md mx-auto px-4"></div>
 
     <script>
-        // --- အချက်အလက် ထည့်ရန်နေရာ ---
-        // Post အသစ်ထည့်ချင်ရင် အောက်က [ ] ထဲမှာ ကုဒ်လေးတွေ ကူးထည့်ပေးရုံပါပဲ
-        const posts = [
-            /* နမူနာ ထည့်နည်း-
-            {
-                name: "အမည်",
-                age: 20,
-                price: "50000",
-                time: "ညနေ",
-                isResting: false, 
-                images: ["ပုံ Link ၁", "ပုံ Link ၂"]
-            },
-            */
-        ];
+        // Admin Login
+        document.getElementById('adminTrigger').onclick = () => {
+            if (prompt("Admin Passcode:") === "Z@w119241") {
+                document.getElementById('adminPanel').classList.remove('hidden');
+            }
+        };
+
+        function closeAdmin() { document.getElementById('adminPanel').classList.add('hidden'); }
+
+        // LocalStorage ကို သုံးထားသော်လည်း အခြေခံအားဖြင့် browser မှာ သိမ်းဆည်းထားမည်
+        let posts = JSON.parse(localStorage.getItem('darkside_live_posts')) || [];
+
+        function publishPost() {
+            const name = document.getElementById('nameIn').value;
+            const age = document.getElementById('ageIn').value;
+            const time = document.getElementById('timeIn').value;
+            const price = document.getElementById('priceIn').value;
+            const imgInput = document.getElementById('imgLinks').value;
+            
+            if (!name || !imgInput) return alert("နာမည်နှင့် ပုံ Link ထည့်ပါ။");
+
+            const images = imgInput.split(',').map(s => s.trim());
+
+            const newPost = {
+                id: Date.now(),
+                name, age, time, price, images,
+                isResting: false
+            };
+
+            posts.unshift(newPost);
+            saveAndRender();
+            closeAdmin();
+        }
+
+        function toggleRest(id) {
+            posts = posts.map(p => p.id === id ? {...p, isResting: !p.isResting} : p);
+            saveAndRender();
+        }
+
+        function deleteOne(id) {
+            if(confirm("ဖျက်မှာလား?")) {
+                posts = posts.filter(p => p.id !== id);
+                saveAndRender();
+            }
+        }
+
+        function clearAllPosts() {
+            if(confirm("အကုန်ဖျက်မှာလား?")) {
+                posts = [];
+                saveAndRender();
+            }
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('darkside_live_posts', JSON.stringify(posts));
+            renderFeed();
+        }
 
         function renderFeed() {
             const feed = document.getElementById('postFeed');
-            feed.innerHTML = '';
-
-            if (posts.length === 0) {
-                feed.innerHTML = '<p class="text-center text-gray-500 mt-10 italic">Post မရှိသေးပါ။</p>';
-                return;
-            }
+            feed.innerHTML = posts.length === 0 ? '<p class="text-center text-gray-600 mt-10 italic">Post မရှိသေးပါ...</p>' : '';
 
             posts.forEach(post => {
                 const card = document.createElement('div');
@@ -63,10 +120,9 @@
                         <div class="${post.isResting ? '' : 'hidden'} overlay-status">
                             <i class="fas fa-clock text-pink-500 text-5xl mb-2 animate-pulse"></i>
                             <h2 class="text-2xl font-black text-white neon-text">ယာယီနားထားပါသည်</h2>
-                            <p class="text-gray-400 text-sm">နောက်မှ ပြန်လာခဲ့ပါ</p>
                         </div>
                         <div class="slider-container p-4">
-                            ${post.images.map(img => `<img src="${img}" class="slide-item" onerror="this.src='https://via.placeholder.com/400x350?text=Image+Error'">`).join('')}
+                            ${post.images.map(img => `<img src="${img}" class="slide-item">`).join('')}
                         </div>
                     </div>
                     <div class="p-8">
@@ -76,14 +132,18 @@
                                 <span class="text-pink-400 font-bold">Age: ${post.age}</span>
                             </div>
                             <div class="text-right">
-                                <div class="text-2xl font-black text-white bg-pink-600 px-4 py-1 rounded-2xl shadow-lg">${post.price} Ks</div>
+                                <div class="text-2xl font-black text-white bg-pink-600 px-4 py-1 rounded-2xl">${post.price} Ks</div>
                                 <p class="text-gray-500 text-xs mt-1 font-bold">Available ${post.time}</p>
                             </div>
                         </div>
                         <a href="https://www.facebook.com/profile.php?id=61586281884184" target="_blank"
-                           class="block w-full bg-gradient-to-r from-pink-600 to-purple-700 text-center py-4 rounded-3xl font-black text-xl active:scale-95 transition-all">
+                           class="block w-full bg-gradient-to-r from-pink-600 to-purple-700 text-center py-4 rounded-3xl font-black text-xl mb-4">
                            <i class="fab fa-facebook-messenger mr-2"></i> ဆက်သွယ်ရန် (FB)
                         </a>
+                        <div class="admin-only flex gap-2 border-t border-white/10 pt-4">
+                             <button onclick="toggleRest(${post.id})" class="text-[10px] bg-yellow-600/20 text-yellow-500 px-3 py-1 rounded-lg border border-yellow-500/30">ယာယီနား/ဖွင့်</button>
+                             <button onclick="deleteOne(${post.id})" class="text-[10px] bg-red-600/20 text-red-500 px-3 py-1 rounded-lg border border-red-500/30">ဖျက်မည်</button>
+                        </div>
                     </div>
                 `;
                 feed.appendChild(card);
