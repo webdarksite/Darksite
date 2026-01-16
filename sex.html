@@ -1,140 +1,201 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DARKSIDE</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DARKSIDE Premium Service</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
 
-<style>
-:root{--bg:#0b0b12;--pink:#ff3d8b;--muted:#9aa0b4}
-*{box-sizing:border-box}
-body{
- margin:0;font-family:system-ui;
- background:radial-gradient(900px 500px at 50% -200px,#1b1f3a,transparent),var(--bg);
- color:#fff
-}
-h1{text-align:center;color:#ff5fa2;letter-spacing:4px}
-.container{max-width:1000px;margin:auto;padding:16px}
-.card{background:#0f1430;border-radius:22px;padding:14px;margin-bottom:18px}
-.imggrid{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
-.imggrid img{width:100%;height:72px;object-fit:cover;border-radius:8px}
-.info{display:flex;justify-content:space-between;margin-top:10px}
-.badge{background:var(--pink);padding:6px 12px;border-radius:999px}
-.meta{color:var(--muted)}
-.btn{display:block;margin-top:10px;padding:14px;border-radius:14px;background:linear-gradient(90deg,#ff3d8b,#a855f7);text-align:center;color:#fff;text-decoration:none}
-.admin{background:#0f142e;border-radius:16px;padding:14px;margin-bottom:16px}
-.admin input,.admin select,.admin button{width:100%;padding:10px;margin-top:8px;border-radius:10px}
-.hidden{display:none}
-.blur{filter:blur(8px);opacity:.4}
-.actions{display:flex;gap:6px;margin-top:8px}
-.actions button{flex:1}
-</style>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Padauk:wght@400;700&display=swap');
+        body { background-color: #050505; color: #f1f5f9; font-family: 'Padauk', sans-serif; overflow-x: hidden; }
+        .neon-text { text-shadow: 0 0 10px #ec4899; }
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.05); }
+        /* ၁၀ ပုံ Slider စနစ် */
+        .slider-container { overflow-x: auto; scroll-snap-type: x mandatory; display: flex; gap: 8px; scrollbar-width: none; border-radius: 20px; }
+        .slider-container::-webkit-scrollbar { display: none; }
+        .slide-item { flex: 0 0 90%; scroll-snap-align: center; border-radius: 20px; height: 400px; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); }
+        .post-card { margin-bottom: 40px; }
+        /* ယာယီနား Overlay */
+        .overlay-closed { position: absolute; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 40; border-radius: 2.5rem; cursor: not-allowed; }
+        .no-click { pointer-events: none; }
+    </style>
 </head>
+<body class="pb-24">
 
-<body>
+    <div class="text-center py-10">
+        <h1 id="brandHeader" class="text-6xl font-black neon-text text-pink-500 tracking-tighter mb-2 cursor-pointer select-none">DARKSIDE</h1>
+        <p class="text-gray-400 font-bold">Premium Services</p>
+    </div>
 
-<h1>DARKSIDE</h1>
-<div class="container">
+    <div id="adminPanel" class="hidden fixed inset-0 z-50 bg-black/95 p-6 overflow-y-auto">
+        <div class="max-w-md mx-auto space-y-4">
+            <h2 class="text-2xl font-bold text-pink-500 border-b border-pink-500 pb-2">ADMIN MANAGER</h2>
+            <div class="space-y-3 text-black">
+                <input type="text" id="nameIn" placeholder="နာမည်" class="w-full p-4 rounded-xl font-bold">
+                <div class="flex gap-2">
+                    <input type="number" id="ageIn" placeholder="အသက်" class="w-1/2 p-4 rounded-xl font-bold">
+                    <input type="text" id="timeIn" placeholder="အချိန် (3hr/Day)" class="w-1/2 p-4 rounded-xl font-bold">
+                </div>
+                <input type="text" id="priceIn" placeholder="စျေးနှုန်း" class="w-full p-4 rounded-xl font-bold">
+                
+                <button id="uploadBtn" class="w-full bg-blue-600 text-white py-4 rounded-xl font-black">
+                    <i class="fas fa-images mr-2"></i> ပုံရွေးရန် (Gallery/Camera)
+                </button>
+                <div id="imagePreview" class="flex gap-2 overflow-x-auto py-2"></div>
+            </div>
 
-<!-- ADMIN LOGIN (Admin only knows this) -->
-<div id="loginBox" class="admin">
-<b>Admin Login</b>
-<input id="adminId" placeholder="Admin ID">
-<button onclick="login()">Enter</button>
-</div>
+            <button onclick="savePost()" id="submitBtn" class="w-full bg-pink-600 text-white py-4 rounded-2xl font-black text-xl shadow-lg">POST တင်မည်</button>
+            <button onclick="closeAdmin()" class="w-full text-gray-400 underline pt-2">ပိတ်မည်</button>
+        </div>
+    </div>
 
-<!-- ADMIN PANEL -->
-<div id="panel" class="admin hidden">
-<input id="name" placeholder="Name">
-<input id="age" type="number" placeholder="Age 18+">
-<input id="time" placeholder="Time">
-<input id="price" placeholder="Price">
-<select id="status">
-<option>OPEN</option>
-<option>CLOSED</option>
-<option>SOLD</option>
-</select>
-<input type="file" id="files" accept="image/*" multiple>
-<button onclick="createPost()">Save</button>
-</div>
+    <div id="postFeed" class="max-w-md mx-auto px-4">
+        <p class="text-center text-gray-700 mt-20">Loading...</p>
+    </div>
 
-<!-- POSTS -->
-<div id="posts"></div>
-</div>
+    <script>
+        // Firebase Config
+        const firebaseConfig = { databaseURL: "https://darkside-live-default-rtdb.firebaseio.com/" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database().ref('v3_posts');
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+        let selectedImages = [];
+        let editId = null;
 
-<script>
-const firebaseConfig={
- apiKey:"YOUR_KEY",
- authDomain:"YOUR_DOMAIN",
- projectId:"YOUR_ID",
- storageBucket:"YOUR_BUCKET",
- appId:"YOUR_APP_ID"
-};
-firebase.initializeApp(firebaseConfig);
+        // Admin Access (Hidden)
+        document.getElementById('brandHeader').onclick = () => {
+            if (prompt("Passcode:") === "Z@w119241") {
+                document.getElementById('adminPanel').classList.remove('hidden');
+            }
+        };
 
-const db=firebase.firestore();
-const storage=firebase.storage();
+        function closeAdmin() {
+            document.getElementById('adminPanel').classList.add('hidden');
+            resetForm();
+        }
 
-const ADMIN_ID="Z@w119241";
-const FB_LINK="https://www.facebook.com/profile.php?id=61586281884184";
-let isAdmin=false;
+        // Image Upload (Cloudinary)
+        document.getElementById('uploadBtn').onclick = () => {
+            cloudinary.openUploadWidget({
+                cloudName: 'dtv7m7poy', uploadPreset: 'ml_default',
+                sources: ['local', 'camera'], multiple: true, maxFiles: 10
+            }, (err, result) => {
+                if (!err && result.event === "success") {
+                    selectedImages.push(result.info.secure_url);
+                    renderPreview();
+                }
+            });
+        };
 
-function login(){
- if(adminId.value===ADMIN_ID){
-  isAdmin=true;
-  loginBox.classList.add("hidden");
-  panel.classList.remove("hidden");
- }else alert("Wrong Admin ID");
-}
+        function renderPreview() {
+            const div = document.getElementById('imagePreview');
+            div.innerHTML = selectedImages.map(img => `<img src="${img}" class="w-16 h-16 rounded-lg object-cover border border-pink-500">`).join('');
+        }
 
-async function createPost(){
- if(+age.value<18) return alert("18+ only");
- let urls=[];
- for(let f of files.files){
-  let ref=storage.ref("posts/"+Date.now()+"_"+f.name);
-  await ref.put(f);
-  urls.push(await ref.getDownloadURL());
- }
- await db.collection("posts").add({
-  name:name.value,
-  age:age.value,
-  time:time.value,
-  price:price.value,
-  status:status.value,
-  imgs:urls,
-  disabled:false,
-  created:Date.now()
- });
- files.value="";
-}
+        function resetForm() {
+            document.getElementById('nameIn').value = '';
+            document.getElementById('ageIn').value = '';
+            document.getElementById('timeIn').value = '';
+            document.getElementById('priceIn').value = '';
+            selectedImages = [];
+            editId = null;
+            document.getElementById('submitBtn').innerText = "POST တင်မည်";
+            renderPreview();
+        }
 
-db.collection("posts").orderBy("created","desc")
-.onSnapshot(snap=>{
- posts.innerHTML="";
- snap.forEach(doc=>{
-  let p=doc.data();
-  let c=document.createElement("div");
-  c.className="card";
-  c.innerHTML=`
-   <div class="${p.disabled?'blur':''}">
-    <div class="imggrid">${p.imgs.map(i=>`<img src="${i}">`).join("")}</div>
-   </div>
-   <div class="info">
-    <div>${p.name}<div class="meta">${p.age} • ${p.time}</div></div>
-    <div class="badge">${p.price}</div>
-   </div>
-   <div class="meta">${p.status}</div>
-   <a class="btn" href="${FB_LINK}" target="_blank">Order</a>
-  `;
-  posts.appendChild(c);
- });
-});
-</script>
+        function savePost() {
+            const data = {
+                name: document.getElementById('nameIn').value,
+                age: document.getElementById('ageIn').value,
+                time: document.getElementById('timeIn').value,
+                price: document.getElementById('priceIn').value,
+                images: selectedImages,
+                status: 'open',
+                timestamp: Date.now()
+            };
 
+            if (!data.name || selectedImages.length === 0) return alert("အချက်အလက်ပြည့်စုံအောင်ထည့်ပါ။");
+
+            if (editId) {
+                db.child(editId).update(data).then(() => { alert("Updated!"); closeAdmin(); });
+            } else {
+                db.push(data).then(() => { alert("Posted!"); closeAdmin(); });
+            }
+        }
+
+        // Realtime Data Sync
+        db.on('value', (snap) => {
+            const posts = snap.val();
+            const feed = document.getElementById('postFeed');
+            feed.innerHTML = '';
+            
+            if (!posts) return feed.innerHTML = '<p class="text-center text-gray-800 mt-10">No Posts Available.</p>';
+
+            Object.keys(posts).reverse().forEach(id => {
+                const p = posts[id];
+                const isClosed = p.status === 'closed';
+                const card = document.createElement('div');
+                card.className = "post-card glass rounded-[2.5rem] overflow-hidden relative border border-white/5";
+                
+                card.innerHTML = `
+                    <div class="relative ${isClosed ? 'no-click' : ''}">
+                        ${isClosed ? `
+                            <div class="overlay-closed">
+                                <i class="fas fa-lock text-pink-500 text-5xl mb-3"></i>
+                                <h2 class="text-2xl font-black text-white neon-text">ယာယီနားသည်</h2>
+                            </div>` : ''}
+                        <div class="slider-container p-4">
+                            ${p.images.map(img => `<img src="${img}" class="slide-item shadow-2xl">`).join('')}
+                        </div>
+                    </div>
+                    <div class="p-8">
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <h2 class="text-4xl font-black text-white">${p.name}</h2>
+                                <p class="text-pink-400 font-bold">Age: ${p.age} • Time: ${p.time}</p>
+                            </div>
+                            <div class="bg-pink-600 px-4 py-2 rounded-2xl font-black text-xl shadow-lg">${p.price} Ks</div>
+                        </div>
+                        
+                        <a href="https://www.facebook.com/profile.php?id=61586281884184" 
+                           target="_blank" 
+                           class="block w-full bg-gradient-to-r from-pink-600 to-purple-700 text-center py-5 rounded-[2rem] font-black text-2xl shadow-xl ${isClosed ? 'opacity-20 pointer-events-none' : ''}">
+                           ORDER ON FACEBOOK
+                        </a>
+
+                        <div class="mt-4 flex gap-2 opacity-10 hover:opacity-100 transition-opacity">
+                            <button onclick="toggleStatus('${id}', '${p.status}')" class="flex-1 bg-yellow-600/20 text-yellow-500 py-2 rounded-xl text-xs font-bold border border-yellow-500/20">နား/ဖွင့်</button>
+                            <button onclick="editPost('${id}')" class="flex-1 bg-blue-600/20 text-blue-500 py-2 rounded-xl text-xs font-bold border border-blue-500/20">Edit</button>
+                            <button onclick="deletePost('${id}')" class="flex-1 bg-red-600/20 text-red-500 py-2 rounded-xl text-xs font-bold border border-red-500/20">Delete</button>
+                        </div>
+                    </div>
+                `;
+                feed.appendChild(card);
+            });
+        });
+
+        function deletePost(id) { if(confirm("ဖျက်မှာလား?")) db.child(id).remove(); }
+        function toggleStatus(id, cur) { db.child(id).update({ status: cur === 'open' ? 'closed' : 'open' }); }
+        function editPost(id) {
+            db.child(id).once('value', s => {
+                const p = s.val();
+                document.getElementById('nameIn').value = p.name;
+                document.getElementById('ageIn').value = p.age;
+                document.getElementById('timeIn').value = p.time;
+                document.getElementById('priceIn').value = p.price;
+                selectedImages = p.images;
+                editId = id;
+                document.getElementById('submitBtn').innerText = "Update";
+                document.getElementById('adminPanel').classList.remove('hidden');
+                renderPreview();
+            });
+        }
+    </script>
 </body>
 </html>
