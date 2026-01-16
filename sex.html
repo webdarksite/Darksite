@@ -26,7 +26,7 @@
     </div>
 
     <div class="text-center py-10">
-        <h1 class="text-6xl font-black neon-text text-pink-500 tracking-tighter mb-4" onclick="adminLogin()">DARKSIDE</h1>
+        <h1 class="text-6xl font-black neon-text text-pink-500 tracking-tighter mb-4" style="cursor: pointer;" onclick="adminLogin()">DARKSIDE</h1>
         <p class="text-gray-200 text-lg font-bold px-6">
             Sexchat & dategirl & စပွန်ဆာများ <br>
             <span class="text-pink-400 font-black italic underline">Fb တို့ဆက်သွယ်ရန်နိုင်ပါသည်</span>
@@ -34,26 +34,25 @@
     </div>
 
     <div id="adminPanel" class="hidden glass m-4 p-6 rounded-3xl border-2 border-pink-500/50">
-        <h2 class="text-xl font-bold text-yellow-400 mb-4 text-center underline">ADMIN POST PANEL</h2>
+        <h2 class="text-xl font-bold text-yellow-400 mb-4 text-center underline">ADMIN MANAGEMENT</h2>
         <div class="space-y-4 text-black">
-            <input type="text" id="nameIn" placeholder="နာမည်ရိုက်ပါ" class="w-full p-4 rounded-2xl font-bold">
+            <input type="text" id="nameIn" placeholder="နာမည်" class="w-full p-4 rounded-2xl font-bold">
             <div class="flex gap-2">
                 <input type="number" id="ageIn" placeholder="အသက်" class="w-1/2 p-4 rounded-2xl font-bold">
-                <input type="text" id="timeIn" placeholder="အချိန် (ဥပမာ-24hr)" class="w-1/2 p-4 rounded-2xl font-bold">
+                <input type="text" id="timeIn" placeholder="အချိန် (Available)" class="w-1/2 p-4 rounded-2xl font-bold">
             </div>
-            <input type="text" id="priceIn" placeholder="စျေးနှုန်း (ဥပမာ-၅၀၀၀၀)" class="w-full p-4 rounded-2xl font-bold">
+            <input type="text" id="priceIn" placeholder="စျေးနှုန်း" class="w-full p-4 rounded-2xl font-bold">
             
             <div class="bg-slate-800 p-4 rounded-2xl text-white">
-                <label class="block mb-2 font-bold text-pink-400">ပုံတင်ရန် (Fb/Telegram/Camera မှ ရွေးပါ)</label>
+                <label class="block mb-2 font-bold text-pink-400">ပုံအသစ်တင်ရန် (ရွေးချယ်ပါ)</label>
                 <input type="file" id="imgIn" multiple accept="image/*" class="w-full text-sm">
-                <p class="text-xs text-gray-400 mt-1">*ပုံ ၃၀ ထိ ရွေးတင်နိုင်သည်</p>
             </div>
 
             <div class="flex gap-2">
-                <button onclick="postNow()" class="bg-green-600 text-white font-black py-4 rounded-2xl flex-1 shadow-lg">POST တင်မည်</button>
+                <button onclick="saveAndPost()" class="bg-green-600 text-white font-black py-4 rounded-2xl flex-1 shadow-lg">UPDATE တင်မည်</button>
                 <button onclick="toggleOff()" id="offBtn" class="bg-red-600 text-white font-black py-4 rounded-2xl flex-1 shadow-lg">ယာယီနားမည်</button>
             </div>
-            <button onclick="logout()" class="w-full text-gray-400 text-xs mt-2 underline">Logout ပြန်ထွက်မည်</button>
+            <button onclick="document.getElementById('adminPanel').classList.add('hidden')" class="w-full text-gray-400 text-xs mt-2 underline">ပိတ်မည်</button>
         </div>
     </div>
 
@@ -64,17 +63,16 @@
 
         <div class="glass rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl">
             <div id="imgShow" class="slider-container p-4">
-                <img src="https://via.placeholder.com/400x500?text=Wait+for+Post" class="slide-item">
-            </div>
+                </div>
 
             <div class="p-8">
                 <div class="flex justify-between items-start mb-4">
                     <div>
-                        <h2 id="nameShow" class="text-4xl font-black text-white">DARKSIDE</h2>
+                        <h2 id="nameShow" class="text-4xl font-black text-white">--</h2>
                         <span id="ageShow" class="text-pink-400 font-bold">Age: --</span>
                     </div>
                     <div class="text-right">
-                        <div id="priceShow" class="text-2xl font-black text-white bg-pink-600 px-4 py-1 rounded-2xl shadow-lg shadow-pink-600/30">-- Ks</div>
+                        <div id="priceShow" class="text-2xl font-black text-white bg-pink-600 px-4 py-1 rounded-2xl">-- Ks</div>
                         <p id="timeShow" class="text-gray-500 text-xs mt-1 font-bold">Available --</p>
                     </div>
                 </div>
@@ -84,7 +82,6 @@
                 </p>
 
                 <a href="https://www.facebook.com/profile.php?id=61586281884184" 
-                   target="_blank"
                    class="block w-full bg-gradient-to-r from-pink-600 to-purple-700 text-center py-5 rounded-3xl font-black text-xl shadow-xl active:scale-95 transition-all">
                    <i class="fab fa-facebook-messenger mr-2"></i> ဆက်သွယ်ရန် (FB)
                 </a>
@@ -93,86 +90,101 @@
     </div>
 
     <script>
-        let isOff = false;
+        // စာမျက်နှာ စဖွင့်ချင်း သိမ်းထားတာတွေ ပြန်ထုတ်မည်
+        window.onload = function() {
+            loadSavedData();
+        };
 
-        // Admin Login စနစ်
         function adminLogin() {
-            const pass = prompt("Admin Passcode ရိုက်ထည့်ပါ:");
+            const pass = prompt("Admin Passcode:");
             if (pass === "Z@w119241") {
                 document.getElementById('adminPanel').classList.remove('hidden');
-                alert("Login အောင်မြင်သည်။ Post တင်နိုင်ပါပြီ။");
-                window.scrollTo({ top: document.getElementById('adminPanel').offsetTop, behavior: 'smooth' });
             } else if (pass !== null) {
-                alert("Passcode မှားနေပါသည်။");
+                alert("မှားယွင်းနေပါသည်။");
             }
         }
 
-        function logout() {
-            document.getElementById('adminPanel').classList.add('hidden');
+        function saveAndPost() {
+            const data = {
+                name: document.getElementById('nameIn').value,
+                age: document.getElementById('ageIn').value,
+                time: document.getElementById('timeIn').value,
+                price: document.getElementById('priceIn').value
+            };
+
+            localStorage.setItem('darkside_data', JSON.stringify(data));
+            
+            const imgFiles = document.getElementById('imgIn').files;
+            if (imgFiles.length > 0) {
+                const imgArray = [];
+                let loadedCount = 0;
+
+                for (let i = 0; i < imgFiles.length; i++) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        imgArray.push(e.target.result);
+                        loadedCount++;
+                        if (loadedCount === imgFiles.length) {
+                            localStorage.setItem('darkside_imgs', JSON.stringify(imgArray));
+                            displayData();
+                        }
+                    };
+                    reader.readAsDataURL(imgFiles[i]);
+                }
+            } else {
+                displayData();
+            }
+            alert("အချက်အလက်များ သိမ်းဆည်းပြီးပါပြီ။");
         }
 
-        // ယာယီနားသည့်စနစ်
+        function displayData() {
+            const data = JSON.parse(localStorage.getItem('darkside_data'));
+            const imgs = JSON.parse(localStorage.getItem('darkside_imgs'));
+
+            if (data) {
+                document.getElementById('nameShow').innerText = data.name || "--";
+                document.getElementById('ageShow').innerText = "Age: " + (data.age || "--");
+                document.getElementById('priceShow').innerText = (data.price || "--") + " Ks";
+                document.getElementById('timeShow').innerText = "Available " + (data.time || "--");
+            }
+
+            if (imgs && imgs.length > 0) {
+                const slider = document.getElementById('imgShow');
+                slider.innerHTML = "";
+                imgs.forEach(src => {
+                    const img = document.createElement('img');
+                    img.src = src;
+                    img.className = "slide-item";
+                    slider.appendChild(img);
+                });
+            }
+        }
+
+        function loadSavedData() {
+            displayData();
+            if(localStorage.getItem('darkside_off') === 'true') {
+                isOff = true;
+                applyStatus();
+            }
+        }
+
+        let isOff = false;
         function toggleOff() {
             isOff = !isOff;
+            localStorage.setItem('darkside_off', isOff);
+            applyStatus();
+        }
+
+        function applyStatus() {
             const overlay = document.getElementById('closedOverlay');
             const offBtn = document.getElementById('offBtn');
-            const tag = document.getElementById('onlineTag');
-
             if (isOff) {
                 overlay.style.display = 'flex';
                 offBtn.innerText = "ပြန်ဖွင့်မည်";
-                offBtn.classList.replace('bg-red-600', 'bg-blue-600');
-                tag.innerText = "● OFFLINE";
-                tag.classList.replace('text-green-400', 'text-red-400');
             } else {
                 overlay.style.display = 'none';
                 offBtn.innerText = "ယာယီနားမည်";
-                offBtn.classList.replace('bg-blue-600', 'bg-red-600');
-                tag.innerText = "● ONLINE NOW";
-                tag.classList.replace('text-red-400', 'text-green-400');
             }
-        }
-
-        // Post တင်သည့်စနစ်
-        function postNow() {
-            const name = document.getElementById('nameIn').value;
-            const age = document.getElementById('ageIn').value;
-            const price = document.getElementById('priceIn').value;
-            const time = document.getElementById('timeIn').value;
-            const files = document.getElementById('imgIn').files;
-
-            if (!name || !price) {
-                alert("နာမည်နှင့် စျေးနှုန်း အနည်းဆုံး ထည့်ပေးပါ။");
-                return;
-            }
-
-            // စာသားများ ပြောင်းလဲခြင်း
-            document.getElementById('nameShow').innerText = name;
-            document.getElementById('ageShow').innerText = "Age: " + age;
-            document.getElementById('priceShow').innerText = price + " Ks";
-            document.getElementById('timeShow').innerText = "Available " + time;
-
-            // ပုံများ ပြောင်းလဲခြင်း
-            if (files.length > 0) {
-                const slider = document.getElementById('imgShow');
-                slider.innerHTML = ""; // အရင်ပုံဟောင်းဖျက်
-                
-                // ပုံ ၃၀ ထိ ကန့်သတ်ချက်
-                const limit = Math.min(files.length, 30);
-
-                for (let i = 0; i < limit; i++) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const img = document.createElement('img');
-                        img.src = e.target.result;
-                        img.className = "slide-item";
-                        slider.appendChild(img);
-                    }
-                    reader.readAsDataURL(files[i]);
-                }
-            }
-            alert("Post တင်ပြီးပါပြီ။ အောက်တွင် ကြည့်နိုင်ပါသည်။");
-            logout(); // Post တင်ပြီးရင် admin panel ပိတ်မည်
         }
     </script>
 </body>
