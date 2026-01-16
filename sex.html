@@ -11,69 +11,71 @@
         body { background-color: #050505; color: #f1f5f9; font-family: 'Padauk', sans-serif; overflow-x: hidden; }
         .neon-text { text-shadow: 0 0 10px #ec4899, 0 0 20px #ec4899; }
         .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.05); }
-        .slider-container { overflow-x: auto; scroll-snap-type: x mandatory; display: flex; gap: 12px; scrollbar-width: none; border-radius: 20px; min-height: 300px; }
+        .slider-container { overflow-x: auto; scroll-snap-type: x mandatory; display: flex; gap: 12px; scrollbar-width: none; border-radius: 20px; }
         .slider-container::-webkit-scrollbar { display: none; }
         .slide-item { flex: 0 0 85%; scroll-snap-align: center; border-radius: 20px; height: 400px; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); }
-        #closedOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 999; flex-direction: column; justify-content: center; align-items: center; }
+        .overlay-status { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 50; border-radius: 3rem; }
     </style>
 </head>
 <body class="pb-20">
 
-    <div id="closedOverlay">
-        <i class="fas fa-clock text-pink-500 text-6xl mb-4 animate-pulse"></i>
-        <h1 class="text-4xl font-black text-white mb-2 neon-text">ယာယီနားထားပါသည်</h1>
-        <p class="text-gray-400">ခဏတာနားချိန်ဖြစ်၍ နောက်မှပြန်လာခဲ့ပါ</p>
-    </div>
-
     <div class="text-center py-10">
-        <h1 class="text-6xl font-black neon-text text-pink-500 tracking-tighter mb-4" style="cursor: pointer;" onclick="adminLogin()">DARKSIDE</h1>
+        <h1 id="adminTrigger" class="text-6xl font-black neon-text text-pink-500 tracking-tighter mb-4 cursor-pointer">DARKSIDE</h1>
         <p class="text-gray-200 text-lg font-bold px-6">
             Sexchat & dategirl & စပွန်ဆာများ <br>
             <span class="text-pink-400 font-black italic underline">Fb တို့ဆက်သွယ်ရန်နိုင်ပါသည်</span>
         </p>
     </div>
 
-    <div id="adminPanel" class="hidden glass m-4 p-6 rounded-3xl border-2 border-pink-500/50">
-        <h2 class="text-xl font-bold text-yellow-400 mb-4 text-center underline">ADMIN MANAGEMENT</h2>
-        <div class="space-y-4 text-black">
-            <input type="text" id="nameIn" placeholder="နာမည်" class="w-full p-4 rounded-2xl font-bold">
+    <div id="adminPanel" class="hidden glass m-4 p-6 rounded-3xl border-2 border-pink-500/50 max-w-md mx-auto">
+        <h2 class="text-xl font-bold text-yellow-400 mb-4 text-center underline">ADMIN POST CONTROL</h2>
+        <div class="space-y-4 text-black font-bold">
+            <input type="text" id="nameIn" placeholder="အမည် (ဥပမာ - Zar Zar)" class="w-full p-4 rounded-2xl">
             <div class="flex gap-2">
-                <input type="number" id="ageIn" placeholder="အသက်" class="w-1/2 p-4 rounded-2xl font-bold">
-                <input type="text" id="timeIn" placeholder="အချိန် (Available)" class="w-1/2 p-4 rounded-2xl font-bold">
+                <input type="number" id="ageIn" placeholder="အသက်" class="w-1/2 p-4 rounded-2xl">
+                <input type="text" id="timeIn" placeholder="အချိန် (ဥပမာ - 3နာရီ)" class="w-1/2 p-4 rounded-2xl">
             </div>
-            <input type="text" id="priceIn" placeholder="စျေးနှုန်း" class="w-full p-4 rounded-2xl font-bold">
+            <input type="text" id="priceIn" placeholder="စျေးနှုန်း (ဥပမာ - ၅၀၀၀၀)" class="w-full p-4 rounded-2xl">
             
             <div class="bg-slate-800 p-4 rounded-2xl text-white">
-                <label class="block mb-2 font-bold text-pink-400">ပုံအသစ်တင်ရန် (ရွေးချယ်ပါ)</label>
+                <label class="block mb-2 text-pink-400">ပုံရွေးရန် (အများကြီးရွေးနိုင်သည်)</label>
                 <input type="file" id="imgIn" multiple accept="image/*" class="w-full text-sm">
             </div>
 
             <div class="flex gap-2">
-                <button onclick="saveAndPost()" class="bg-green-600 text-white font-black py-4 rounded-2xl flex-1 shadow-lg">UPDATE တင်မည်</button>
-                <button onclick="toggleOff()" id="offBtn" class="bg-red-600 text-white font-black py-4 rounded-2xl flex-1 shadow-lg">ယာယီနားမည်</button>
+                <button onclick="publishPost()" class="bg-green-600 text-white py-4 rounded-2xl flex-1 shadow-lg">POST တင်မည်</button>
+                <button onclick="toggleMaintenance()" id="mBtn" class="bg-orange-600 text-white py-4 rounded-2xl flex-1 shadow-lg">ယာယီနားမည်</button>
             </div>
-            <button onclick="document.getElementById('adminPanel').classList.add('hidden')" class="w-full text-gray-400 text-xs mt-2 underline">ပိတ်မည်</button>
+            <button onclick="deletePost()" class="w-full bg-red-600 text-white py-3 rounded-2xl font-black mt-2">POST အားလုံးဖျက်မည်</button>
+            <button onclick="closeAdmin()" class="w-full text-gray-400 text-xs mt-3 underline">ပိတ်မည်</button>
         </div>
     </div>
 
-    <div id="mainContent" class="max-w-md mx-auto px-4">
-        <div id="onlineTag" class="mb-4 text-center py-1 px-4 rounded-full bg-green-500/20 text-green-400 text-xs font-black w-max mx-auto border border-green-500/30">
+    <div id="userView" class="max-w-md mx-auto px-4 relative">
+        <div id="onlineStatus" class="mb-4 text-center py-1 px-4 rounded-full bg-green-500/20 text-green-400 text-xs font-black w-max mx-auto border border-green-500/40">
             ● ONLINE NOW
         </div>
 
-        <div class="glass rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl">
-            <div id="imgShow" class="slider-container p-4">
-                </div>
+        <div class="glass rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl relative">
+            <div id="restOverlay" class="overlay-status hidden">
+                <i class="fas fa-clock text-pink-500 text-6xl mb-4 animate-pulse"></i>
+                <h2 class="text-3xl font-black text-white mb-2 neon-text">ယာယီနားထားပါသည်</h2>
+                <p class="text-gray-400 text-sm">ခဏတာနားချိန်ဖြစ်၍ နောက်မှပြန်လာခဲ့ပါ</p>
+            </div>
+
+            <div id="imageGallery" class="slider-container p-4 min-h-[300px] flex items-center justify-center">
+                <p class="text-gray-600 italic">ပုံမတင်ရသေးပါ...</p>
+            </div>
 
             <div class="p-8">
                 <div class="flex justify-between items-start mb-4">
                     <div>
-                        <h2 id="nameShow" class="text-4xl font-black text-white">--</h2>
-                        <span id="ageShow" class="text-pink-400 font-bold">Age: --</span>
+                        <h2 id="nameOut" class="text-4xl font-black text-white">DARKSIDE</h2>
+                        <span id="ageOut" class="text-pink-400 font-bold">Age: --</span>
                     </div>
                     <div class="text-right">
-                        <div id="priceShow" class="text-2xl font-black text-white bg-pink-600 px-4 py-1 rounded-2xl">-- Ks</div>
-                        <p id="timeShow" class="text-gray-500 text-xs mt-1 font-bold">Available --</p>
+                        <div id="priceOut" class="text-2xl font-black text-white bg-pink-600 px-4 py-1 rounded-2xl shadow-lg shadow-pink-600/30">-- Ks</div>
+                        <p id="timeOut" class="text-gray-500 text-xs mt-1 font-bold">Available --</p>
                     </div>
                 </div>
 
@@ -81,7 +83,7 @@
                     အကောင်းဆုံး ဝန်ဆောင်မှုပေးပါသည်။ စိတ်ကြိုက်ပုံများကို ဘေးတိုက်ဆွဲကြည့်ပါ။
                 </p>
 
-                <a href="https://www.facebook.com/profile.php?id=61586281884184" 
+                <a href="https://www.facebook.com/profile.php?id=61586281884184" target="_blank"
                    class="block w-full bg-gradient-to-r from-pink-600 to-purple-700 text-center py-5 rounded-3xl font-black text-xl shadow-xl active:scale-95 transition-all">
                    <i class="fab fa-facebook-messenger mr-2"></i> ဆက်သွယ်ရန် (FB)
                 </a>
@@ -90,102 +92,110 @@
     </div>
 
     <script>
-        // စာမျက်နှာ စဖွင့်ချင်း သိမ်းထားတာတွေ ပြန်ထုတ်မည်
-        window.onload = function() {
-            loadSavedData();
-        };
-
-        function adminLogin() {
+        // Admin Login
+        document.getElementById('adminTrigger').onclick = function() {
             const pass = prompt("Admin Passcode:");
             if (pass === "Z@w119241") {
-                document.getElementById('adminPanel').classList.remove('hidden');
-            } else if (pass !== null) {
-                alert("မှားယွင်းနေပါသည်။");
+                document.getElementById('adminPanel').classList.toggle('hidden');
             }
-        }
+        };
 
-        function saveAndPost() {
-            const data = {
+        function closeAdmin() { document.getElementById('adminPanel').classList.add('hidden'); }
+
+        // Post တင်ခြင်း နှင့် သိမ်းဆည်းခြင်း
+        function publishPost() {
+            const postData = {
                 name: document.getElementById('nameIn').value,
                 age: document.getElementById('ageIn').value,
                 time: document.getElementById('timeIn').value,
-                price: document.getElementById('priceIn').value
+                price: document.getElementById('priceIn').value,
+                isResting: false
             };
 
-            localStorage.setItem('darkside_data', JSON.stringify(data));
-            
-            const imgFiles = document.getElementById('imgIn').files;
-            if (imgFiles.length > 0) {
-                const imgArray = [];
-                let loadedCount = 0;
+            const files = document.getElementById('imgIn').files;
+            if (files.length > 0) {
+                const imgPromises = Array.from(files).map(file => {
+                    return new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.readAsDataURL(file);
+                    });
+                });
 
-                for (let i = 0; i < imgFiles.length; i++) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        imgArray.push(e.target.result);
-                        loadedCount++;
-                        if (loadedCount === imgFiles.length) {
-                            localStorage.setItem('darkside_imgs', JSON.stringify(imgArray));
-                            displayData();
-                        }
-                    };
-                    reader.readAsDataURL(imgFiles[i]);
-                }
+                Promise.all(imgPromises).then(images => {
+                    localStorage.setItem('ds_images', JSON.stringify(images));
+                    localStorage.setItem('ds_post', JSON.stringify(postData));
+                    renderUI();
+                    alert("Post တင်ပြီးပါပြီ။");
+                    closeAdmin();
+                });
             } else {
-                displayData();
+                localStorage.setItem('ds_post', JSON.stringify(postData));
+                renderUI();
+                alert("စာသားများ ပြင်ဆင်ပြီးပါပြီ။");
             }
-            alert("အချက်အလက်များ သိမ်းဆည်းပြီးပါပြီ။");
         }
 
-        function displayData() {
-            const data = JSON.parse(localStorage.getItem('darkside_data'));
-            const imgs = JSON.parse(localStorage.getItem('darkside_imgs'));
+        // UI ပြသခြင်း
+        function renderUI() {
+            const data = JSON.parse(localStorage.getItem('ds_post'));
+            const images = JSON.parse(localStorage.getItem('ds_images'));
 
             if (data) {
-                document.getElementById('nameShow').innerText = data.name || "--";
-                document.getElementById('ageShow').innerText = "Age: " + (data.age || "--");
-                document.getElementById('priceShow').innerText = (data.price || "--") + " Ks";
-                document.getElementById('timeShow').innerText = "Available " + (data.time || "--");
+                document.getElementById('nameOut').innerText = data.name || "DARKSIDE";
+                document.getElementById('ageOut').innerText = "Age: " + (data.age || "--");
+                document.getElementById('priceOut').innerText = (data.price || "--") + " Ks";
+                document.getElementById('timeOut').innerText = "Available " + (data.time || "--");
+                
+                // ယာယီနားခြင်း အခြေအနေ
+                const overlay = document.getElementById('restOverlay');
+                const tag = document.getElementById('onlineStatus');
+                if (data.isResting) {
+                    overlay.classList.remove('hidden');
+                    tag.innerText = "● OFFLINE";
+                    tag.className = "mb-4 text-center py-1 px-4 rounded-full bg-red-500/20 text-red-400 text-xs font-black w-max mx-auto border border-red-500/40";
+                    document.getElementById('mBtn').innerText = "ပြန်ဖွင့်မည်";
+                } else {
+                    overlay.classList.add('hidden');
+                    tag.innerText = "● ONLINE NOW";
+                    tag.className = "mb-4 text-center py-1 px-4 rounded-full bg-green-500/20 text-green-400 text-xs font-black w-max mx-auto border border-green-500/40";
+                    document.getElementById('mBtn').innerText = "ယာယီနားမည်";
+                }
             }
 
-            if (imgs && imgs.length > 0) {
-                const slider = document.getElementById('imgShow');
-                slider.innerHTML = "";
-                imgs.forEach(src => {
+            const gallery = document.getElementById('imageGallery');
+            if (images && images.length > 0) {
+                gallery.innerHTML = "";
+                images.forEach(imgSrc => {
                     const img = document.createElement('img');
-                    img.src = src;
+                    img.src = imgSrc;
                     img.className = "slide-item";
-                    slider.appendChild(img);
+                    gallery.appendChild(img);
                 });
             }
         }
 
-        function loadSavedData() {
-            displayData();
-            if(localStorage.getItem('darkside_off') === 'true') {
-                isOff = true;
-                applyStatus();
+        // ယာယီနားရန် ခလုတ်
+        function toggleMaintenance() {
+            let data = JSON.parse(localStorage.getItem('ds_post'));
+            if (data) {
+                data.isResting = !data.isResting;
+                localStorage.setItem('ds_post', JSON.stringify(data));
+                renderUI();
             }
         }
 
-        let isOff = false;
-        function toggleOff() {
-            isOff = !isOff;
-            localStorage.setItem('darkside_off', isOff);
-            applyStatus();
-        }
-
-        function applyStatus() {
-            const overlay = document.getElementById('closedOverlay');
-            const offBtn = document.getElementById('offBtn');
-            if (isOff) {
-                overlay.style.display = 'flex';
-                offBtn.innerText = "ပြန်ဖွင့်မည်";
-            } else {
-                overlay.style.display = 'none';
-                offBtn.innerText = "ယာယီနားမည်";
+        // အကုန်ဖျက်ရန်
+        function deletePost() {
+            if (confirm("အချက်အလက်အားလုံးကို ဖျက်မှာ သေချာပါသလား?")) {
+                localStorage.removeItem('ds_post');
+                localStorage.removeItem('ds_images');
+                location.reload();
             }
         }
+
+        // စဖွင့်ချိန်မှာ ရှိပြီးသား data ခေါ်ယူခြင်း
+        window.onload = renderUI;
     </script>
 </body>
 </html>
