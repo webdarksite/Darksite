@@ -6,91 +6,863 @@
     <title>DARKSIDE Premium Service</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Padauk:wght@400;700&display=swap');
-        body { background-color: #050505; color: #f1f5f9; font-family: 'Padauk', sans-serif; overflow-x: hidden; }
-        .neon-text { text-shadow: 0 0 10px #ec4899, 0 0 20px #ec4899; }
-        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.05); }
-        .slider-container { overflow-x: auto; scroll-snap-type: x mandatory; display: flex; gap: 12px; scrollbar-width: none; border-radius: 20px; }
-        .slider-container::-webkit-scrollbar { display: none; }
-        .slide-item { flex: 0 0 85%; scroll-snap-align: center; border-radius: 20px; height: 350px; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); }
-        .post-card { margin-bottom: 40px; position: relative; }
-        .overlay-status { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 40; border-radius: 3rem; }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body { 
+            background-color: #050505; 
+            color: #f1f5f9; 
+            font-family: 'Padauk', sans-serif; 
+            overflow-x: hidden; 
+            min-height: 100vh;
+        }
+        
+        .neon-text { 
+            text-shadow: 0 0 10px #ec4899, 0 0 20px #ec4899, 0 0 30px #ec4899; 
+        }
+        
+        .glass { 
+            background: rgba(15, 23, 42, 0.9); 
+            backdrop-filter: blur(20px); 
+            border: 1px solid rgba(255,255,255,0.1); 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+        }
+        
+        .slider-container { 
+            overflow-x: auto; 
+            scroll-snap-type: x mandatory; 
+            display: flex; 
+            gap: 12px; 
+            scrollbar-width: none; 
+            border-radius: 20px; 
+            padding: 8px;
+            min-height: 320px;
+        }
+        
+        .slider-container::-webkit-scrollbar { 
+            display: none; 
+        }
+        
+        .slide-item { 
+            flex: 0 0 85%; 
+            scroll-snap-align: center; 
+            border-radius: 15px; 
+            height: 300px; 
+            object-fit: cover; 
+            border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+        
+        .resting-image-placeholder {
+            flex: 0 0 85%;
+            scroll-snap-align: center;
+            border-radius: 15px;
+            height: 300px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px dashed rgba(255,255,255,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .post-card { 
+            margin-bottom: 30px; 
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .post-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(236, 72, 153, 0.2);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+            transition: all 0.3s ease;
+            font-weight: 900;
+        }
+        
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(236, 72, 153, 0.6);
+        }
+        
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+        
+        .input-field {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: white;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: #ec4899;
+            box-shadow: 0 0 15px rgba(236, 72, 153, 0.4);
+            background: rgba(255,255,255,0.12);
+        }
+        
+        .input-field::placeholder {
+            color: rgba(255,255,255,0.4);
+        }
+        
+        .loading-spinner {
+            border: 5px solid rgba(255,255,255,0.1);
+            border-left-color: #ec4899;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1.2s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0% { 
+                opacity: 1;
+                text-shadow: 0 0 10px #ec4899, 0 0 20px #ec4899, 0 0 30px #ec4899;
+            }
+            50% { 
+                opacity: 0.8;
+                text-shadow: 0 0 15px #ec4899, 0 0 30px #ec4899, 0 0 45px #ec4899;
+            }
+            100% { 
+                opacity: 1;
+                text-shadow: 0 0 10px #ec4899, 0 0 20px #ec4899, 0 0 30px #ec4899;
+            }
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            animation: status-pulse 2s infinite;
+        }
+        
+        @keyframes status-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        
+        .online { 
+            background-color: #10b981; 
+            box-shadow: 0 0 10px #10b981;
+        }
+        
+        .offline { 
+            background-color: #ef4444;
+            animation: none;
+        }
+        
+        .resting-badge {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            animation: resting-pulse 2s infinite;
+        }
+        
+        @keyframes resting-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .available-badge {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+        }
+        
+        .admin-controls {
+            background: rgba(0,0,0,0.3);
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
     </style>
 </head>
-<body class="pb-20">
+<body class="pb-24">
 
-    <div class="text-center py-10">
-        <h1 class="text-6xl font-black neon-text text-pink-500 tracking-tighter mb-4">DARKSIDE</h1>
-        <p class="text-gray-200 text-lg font-bold px-6">
-            Sexchat & dategirl & စပွန်ဆာများ <br>
-            <span class="text-pink-400 font-black italic underline">Fb တို့ဆက်သွယ်ရန်နိုင်ပါသည်</span>
+    <!-- Header Section -->
+    <div class="text-center py-10 px-4 fade-in">
+        <h1 id="adminTrigger" class="text-5xl md:text-6xl font-black neon-text text-pink-500 tracking-tighter mb-4 cursor-pointer pulse hover:scale-105 transition-transform duration-300">
+            DARKSIDE
+        </h1>
+        <p class="text-gray-200 text-base md:text-lg font-bold px-6 mb-2">
+            Sexchat & Dategirl & စပွန်ဆာများ
         </p>
+        <p class="text-pink-400 font-black italic underline text-sm md:text-base mb-4">
+            Fb တို့ဆက်သွယ်ရန်နိုင်ပါသည်
+        </p>
+        <div class="mt-6 text-sm text-gray-400 glass rounded-2xl py-3 px-6 inline-block">
+            <span class="status-dot online"></span> 
+            <span class="font-bold">လက်ရှိ Post: <span id="postCount" class="text-white">0</span></span>
+            <span class="mx-3">|</span>
+            <span class="text-green-400 font-bold" id="availableCount">0</span> ယောက် ရရှိနိုင်
+            <span class="mx-3">|</span>
+            <span class="text-yellow-400 font-bold" id="restingCount">0</span> ယောက် ယာယီနား
+        </div>
     </div>
 
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="hidden glass m-4 p-6 rounded-3xl border-2 border-pink-500/50 max-w-md mx-auto fixed top-5 left-1/2 transform -translate-x-1/2 z-50 slide-in">
+        <div class="flex justify-between items-center mb-6 pb-4 border-b border-white/10">
+            <div>
+                <h2 class="text-xl font-black text-yellow-400">
+                    <i class="fas fa-user-shield mr-2"></i>ADMIN POST PANEL
+                </h2>
+                <p class="text-gray-400 text-xs mt-1">Post အသစ်တင်ရန် / စီမံရန်</p>
+            </div>
+            <button onclick="closeAdmin()" class="text-gray-400 hover:text-white hover:bg-white/10 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-5">
+            <div>
+                <label class="block text-pink-400 font-bold mb-2 text-sm">
+                    <i class="fas fa-user mr-2"></i>နာမည်
+                </label>
+                <input type="text" id="nameIn" placeholder="အမည်ထည့်ပါ" class="w-full p-4 rounded-2xl input-field text-lg">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-pink-400 font-bold mb-2 text-sm">
+                        <i class="fas fa-birthday-cake mr-2"></i>အသက်
+                    </label>
+                    <input type="number" id="ageIn" placeholder="အသက်" class="w-full p-4 rounded-2xl input-field">
+                </div>
+                <div>
+                    <label class="block text-pink-400 font-bold mb-2 text-sm">
+                        <i class="fas fa-clock mr-2"></i>အချိန်
+                    </label>
+                    <input type="text" id="timeIn" placeholder="24/7, 9AM-5PM" class="w-full p-4 rounded-2xl input-field">
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-pink-400 font-bold mb-2 text-sm">
+                    <i class="fas fa-money-bill-wave mr-2"></i>စျေးနှုန်း
+                </label>
+                <input type="text" id="priceIn" placeholder="15000 Ks, 20000 Ks" class="w-full p-4 rounded-2xl input-field">
+            </div>
+            
+            <div class="glass p-4 rounded-2xl border border-white/10">
+                <label class="block text-pink-400 font-bold mb-2">
+                    <i class="fas fa-images mr-2"></i>ပုံ Link များ
+                </label>
+                <textarea id="imgLinks" placeholder="https://image1.jpg, https://image2.jpg, https://image3.jpg" class="w-full p-4 rounded-xl input-field text-sm min-h-[100px]" rows="3"></textarea>
+                <p class="text-gray-400 text-xs mt-3 flex items-center">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    ပုံ link များကို ကော်မာခြားပြီးထည့်ပါ (အနည်းဆုံး ၁ခု)
+                </p>
+            </div>
+            
+            <div class="flex items-center gap-3 p-4 bg-yellow-500/10 rounded-2xl border border-yellow-500/20">
+                <input type="checkbox" id="restingIn" class="w-6 h-6 rounded accent-yellow-500">
+                <label for="restingIn" class="text-yellow-400 font-bold">
+                    <i class="fas fa-clock mr-2"></i>ယာယီနားထားမည်
+                </label>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3 pt-4">
+                <button onclick="publishPost()" class="bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white py-4 rounded-2xl shadow-xl font-bold transition-all duration-300 hover:scale-[1.02]">
+                    <i class="fas fa-paper-plane mr-2"></i>POST တင်မည်
+                </button>
+                <button onclick="clearForm()" class="bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-800 hover:to-gray-900 text-white py-4 rounded-2xl shadow-xl font-bold transition-all duration-300 hover:scale-[1.02]">
+                    <i class="fas fa-eraser mr-2"></i>ရှင်းမည်
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loading" class="flex flex-col justify-center items-center py-20 fade-in">
+        <div class="loading-spinner mb-6"></div>
+        <p class="text-gray-400 text-lg font-bold">Post များရှာနေသည်...</p>
+        <p class="text-gray-500 text-sm mt-2">ခဏစောင့်ပေးပါ</p>
+    </div>
+
+    <!-- Posts Feed -->
     <div id="postFeed" class="max-w-md mx-auto px-4"></div>
 
+    <!-- Bottom Navigation -->
+    <div class="fixed bottom-0 left-0 right-0 glass border-t border-white/10 py-3 z-40 shadow-2xl">
+        <div class="max-w-md mx-auto flex justify-around px-6">
+            <button onclick="scrollToTop()" class="text-center text-gray-300 hover:text-white transition-all duration-300 hover:scale-110">
+                <div class="bg-white/5 w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-1">
+                    <i class="fas fa-home text-xl"></i>
+                </div>
+                <p class="text-xs font-bold">မူလ</p>
+            </button>
+            
+            <button id="refreshBtn" onclick="refreshPosts()" class="text-center text-gray-300 hover:text-white transition-all duration-300 hover:scale-110">
+                <div class="bg-white/5 w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-1">
+                    <i class="fas fa-sync-alt text-xl"></i>
+                </div>
+                <p class="text-xs font-bold">Refresh</p>
+            </button>
+            
+            <button id="adminBtn" onclick="openAdminPanel()" class="text-center text-pink-400 hover:text-pink-300 transition-all duration-300 hover:scale-110">
+                <div class="bg-pink-500/20 w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-1">
+                    <i class="fas fa-user-shield text-xl"></i>
+                </div>
+                <p class="text-xs font-bold">Admin</p>
+            </button>
+        </div>
+    </div>
+
     <script>
-        // --- အချက်အလက် ထည့်ရန်နေရာ ---
-        // Post အသစ်ထည့်ချင်ရင် အောက်က [ ] ထဲမှာ ကုဒ်လေးတွေ ကူးထည့်ပေးရုံပါပဲ
-        const posts = [
-            /* နမူနာ ထည့်နည်း-
-            {
-                name: "အမည်",
-                age: 20,
-                price: "50000",
-                time: "ညနေ",
-                isResting: false, 
-                images: ["ပုံ Link ၁", "ပုံ Link ၂"]
-            },
-            */
-        ];
-
-        function renderFeed() {
-            const feed = document.getElementById('postFeed');
-            feed.innerHTML = '';
-
-            if (posts.length === 0) {
-                feed.innerHTML = '<p class="text-center text-gray-500 mt-10 italic">Post မရှိသေးပါ။</p>';
+        // ============================================
+        // FIREBASE CONFIGURATION
+        // ============================================
+        const firebaseConfig = {
+            databaseURL: "https://darkside-777-default-rtdb.firebaseio.com/"
+        };
+        
+        // Initialize Firebase
+        try {
+            firebase.initializeApp(firebaseConfig);
+        } catch (error) {
+            console.log("Firebase already initialized");
+        }
+        
+        const db = firebase.database().ref('posts');
+        
+        // ============================================
+        // DOM ELEMENTS
+        // ============================================
+        const adminPanel = document.getElementById('adminPanel');
+        const postFeed = document.getElementById('postFeed');
+        const loading = document.getElementById('loading');
+        const postCount = document.getElementById('postCount');
+        const availableCount = document.getElementById('availableCount');
+        const restingCount = document.getElementById('restingCount');
+        const refreshBtn = document.getElementById('refreshBtn');
+        
+        // ============================================
+        // APP STATE
+        // ============================================
+        let isAdmin = false;
+        let currentPosts = [];
+        
+        // ============================================
+        // ADMIN FUNCTIONS
+        // ============================================
+        
+        // Open Admin Panel with Password
+        function openAdminPanel() {
+            const password = prompt("🔐 Admin ဝင်ရန် ကုဒ်ထည့်ပါ:");
+            
+            if (password === "Z@w119241") {
+                isAdmin = true;
+                adminPanel.classList.remove('hidden');
+                document.getElementById('adminBtn').classList.add('shake');
+                setTimeout(() => {
+                    document.getElementById('adminBtn').classList.remove('shake');
+                }, 500);
+                
+                // Show success notification
+                showNotification('✅ Admin အကောင့်သို့ ဝင်ရောက်ပြီးပါပြီ', 'success');
+            } else if (password) {
+                showNotification('❌ ကုဒ်မှားနေပါသည်', 'error');
+            }
+        }
+        
+        // Close Admin Panel
+        function closeAdmin() {
+            adminPanel.classList.add('hidden');
+            isAdmin = false;
+        }
+        
+        // Clear Form
+        function clearForm() {
+            document.getElementById('nameIn').value = '';
+            document.getElementById('ageIn').value = '';
+            document.getElementById('timeIn').value = '';
+            document.getElementById('priceIn').value = '';
+            document.getElementById('imgLinks').value = '';
+            document.getElementById('restingIn').checked = false;
+            
+            showNotification('📝 Form ရှင်းလင်းပြီးပါပြီ', 'info');
+        }
+        
+        // Publish New Post
+        function publishPost() {
+            const name = document.getElementById('nameIn').value.trim();
+            const age = document.getElementById('ageIn').value.trim();
+            const time = document.getElementById('timeIn').value.trim();
+            const price = document.getElementById('priceIn').value.trim();
+            const imgInput = document.getElementById('imgLinks').value.trim();
+            const isResting = document.getElementById('restingIn').checked;
+            
+            // Validation
+            if (!name) {
+                showNotification('❌ နာမည်ထည့်ပေးပါ', 'error');
+                document.getElementById('nameIn').focus();
                 return;
             }
-
-            posts.forEach(post => {
-                const card = document.createElement('div');
-                card.className = "post-card glass rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl";
-                card.innerHTML = `
-                    <div class="relative">
-                        <div class="${post.isResting ? '' : 'hidden'} overlay-status">
-                            <i class="fas fa-clock text-pink-500 text-5xl mb-2 animate-pulse"></i>
-                            <h2 class="text-2xl font-black text-white neon-text">ယာယီနားထားပါသည်</h2>
-                            <p class="text-gray-400 text-sm">နောက်မှ ပြန်လာခဲ့ပါ</p>
-                        </div>
-                        <div class="slider-container p-4">
-                            ${post.images.map(img => `<img src="${img}" class="slide-item" onerror="this.src='https://via.placeholder.com/400x350?text=Image+Error'">`).join('')}
-                        </div>
-                    </div>
-                    <div class="p-8">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h2 class="text-4xl font-black text-white">${post.name}</h2>
-                                <span class="text-pink-400 font-bold">Age: ${post.age}</span>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-2xl font-black text-white bg-pink-600 px-4 py-1 rounded-2xl shadow-lg">${post.price} Ks</div>
-                                <p class="text-gray-500 text-xs mt-1 font-bold">Available ${post.time}</p>
-                            </div>
-                        </div>
-                        <a href="https://www.facebook.com/profile.php?id=61586281884184" target="_blank"
-                           class="block w-full bg-gradient-to-r from-pink-600 to-purple-700 text-center py-4 rounded-3xl font-black text-xl active:scale-95 transition-all">
-                           <i class="fab fa-facebook-messenger mr-2"></i> ဆက်သွယ်ရန် (FB)
-                        </a>
-                    </div>
-                `;
-                feed.appendChild(card);
+            
+            if (!imgInput) {
+                showNotification('❌ ပုံ link အနည်းဆုံးတစ်ခုထည့်ပါ', 'error');
+                document.getElementById('imgLinks').focus();
+                return;
+            }
+            
+            const images = imgInput.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            
+            if (images.length === 0) {
+                showNotification('❌ မှန်ကန်သော ပုံ link ထည့်ပေးပါ', 'error');
+                return;
+            }
+            
+            // Create new post object
+            const newPost = {
+                name,
+                age: age || "N/A",
+                time: time || "24/7",
+                price: price || "စျေးနှုန်းမေးမည်",
+                images,
+                isResting,
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            };
+            
+            // Push to Firebase
+            db.push(newPost)
+                .then(() => {
+                    showNotification('✅ Post တင်ပြီးပါပြီ', 'success');
+                    clearForm();
+                })
+                .catch((error) => {
+                    showNotification(`❌ Error: ${error.message}`, 'error');
+                });
+        }
+        
+        // Update Resting Status
+        function updateRest(id, status) {
+            if (!isAdmin) {
+                showNotification('⚠️ Admin အကောင့်ဖြင့်သာ ပြင်ဆင်နိုင်ပါသည်', 'warning');
+                return;
+            }
+            
+            const actionText = status ? 'နားထား' : 'ဖွင့်လိုက်';
+            if (confirm(`ဒီ post ကို "${actionText}" မှာသေချာပါသလား?`)) {
+                db.child(id).update({ 
+                    isResting: status,
+                    updatedAt: Date.now()
+                });
+                
+                showNotification(`✅ ${actionText} ပြီးပါပြီ`, 'success');
+            }
+        }
+        
+        // Delete Post
+        function deletePost(id) {
+            if (!isAdmin) {
+                showNotification('⚠️ Admin အကောင့်ဖြင့်သာ ဖျက်နိုင်ပါသည်', 'warning');
+                return;
+            }
+            
+            if (confirm("🗑️ ဒီ post ကို အပြီးဖျက်မှာသေချာပါသလား?")) {
+                db.child(id).remove()
+                    .then(() => {
+                        showNotification('✅ Post ဖျက်ပြီးပါပြီ', 'success');
+                    })
+                    .catch((error) => {
+                        showNotification(`❌ Error: ${error.message}`, 'error');
+                    });
+            }
+        }
+        
+        // ============================================
+        // POST DISPLAY FUNCTIONS
+        // ============================================
+        
+        // Refresh Posts
+        function refreshPosts() {
+            refreshBtn.classList.add('animate-spin');
+            showNotification('🔄 Post များပြန်လည်ရယူနေပါသည်...', 'info');
+            
+            setTimeout(() => {
+                refreshBtn.classList.remove('animate-spin');
+                loadPosts();
+            }, 800);
+        }
+        
+        // Scroll to Top
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        // Format Date
+        function formatDate(timestamp) {
+            if (!timestamp) return "";
+            const date = new Date(timestamp);
+            return date.toLocaleDateString("my-MM", {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
             });
         }
-
-        window.onload = renderFeed;
+        
+        // Show Notification
+        function showNotification(message, type) {
+            // Remove existing notification
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            const colors = {
+                success: 'bg-green-500/90',
+                error: 'bg-red-500/90',
+                warning: 'bg-yellow-500/90',
+                info: 'bg-blue-500/90'
+            };
+            
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            
+            const notification = document.createElement('div');
+            notification.className = `notification fixed top-24 left-1/2 transform -translate-x-1/2 ${colors[type]} text-white py-3 px-6 rounded-2xl shadow-2xl z-50 font-bold max-w-md text-center slide-in`;
+            notification.innerHTML = `${icons[type]} ${message}`;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.style.opacity = '0';
+                    notification.style.transform = 'translate(-50%, -20px)';
+                    notification.style.transition = 'all 0.3s ease';
+                    
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }
+            }, 3000);
+        }
+        
+        // Load and Display Posts
+        function loadPosts() {
+            db.on('value', (snapshot) => {
+                const data = snapshot.val();
+                loading.classList.add('hidden');
+                
+                if (!data) {
+                    postFeed.innerHTML = `
+                        <div class="text-center py-20 fade-in">
+                            <div class="glass rounded-3xl p-10 mx-4">
+                                <i class="fas fa-box-open text-7xl text-gray-600 mb-6"></i>
+                                <p class="text-gray-400 text-xl font-bold mb-2">Post မရှိသေးပါ...</p>
+                                <p class="text-gray-500 mb-6">ပထမဆုံး post တင်ရန် Admin အကောင့်ဖြင့်ဝင်ပါ</p>
+                                <button onclick="openAdminPanel()" class="bg-gradient-to-r from-pink-600 to-purple-700 text-white py-3 px-8 rounded-2xl font-bold hover:scale-105 transition-transform duration-300">
+                                    <i class="fas fa-user-shield mr-2"></i>Admin ဝင်ရန်
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    postCount.textContent = "0";
+                    availableCount.textContent = "0";
+                    restingCount.textContent = "0";
+                    return;
+                }
+                
+                // Convert object to array
+                const postList = Object.keys(data).map(key => ({ 
+                    id: key, 
+                    ...data[key] 
+                }));
+                
+                // Store for later use
+                currentPosts = postList;
+                
+                // Sort by date (newest first)
+                postList.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                
+                // Count available and resting
+                const availablePosts = postList.filter(post => !post.isResting);
+                const restingPosts = postList.filter(post => post.isResting);
+                
+                // Update counters
+                postCount.textContent = postList.length;
+                availableCount.textContent = availablePosts.length;
+                restingCount.textContent = restingPosts.length;
+                
+                // Clear feed
+                postFeed.innerHTML = '';
+                
+                // Create HTML for each post
+                postList.forEach((post, index) => {
+                    setTimeout(() => {
+                        const card = document.createElement('div');
+                        card.className = `post-card glass rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl fade-in`;
+                        card.style.animationDelay = `${index * 0.1}s`;
+                        
+                        // Determine status
+                        const statusText = post.isResting ? "ယာယီနားထားပါသည်" : "ရရှိနိုင်ပါသည်";
+                        const statusColor = post.isResting ? "text-yellow-400" : "text-green-400";
+                        const statusIcon = post.isResting ? "fa-clock" : "fa-check-circle";
+                        const badgeClass = post.isResting ? "resting-badge" : "available-badge";
+                        
+                        card.innerHTML = `
+                            <div class="relative">
+                                <!-- IMAGE SECTION - DIFFERENT FOR RESTING VS AVAILABLE -->
+                                ${post.isResting ? `
+                                    <!-- RESTING: NO IMAGES, ONLY MESSAGE -->
+                                    <div class="slider-container p-4">
+                                        <div class="resting-image-placeholder">
+                                            <i class="fas fa-clock text-5xl text-yellow-500 mb-4 animate-pulse"></i>
+                                            <h3 class="text-xl font-black text-white mb-2">ယာယီနားထားပါသည်</h3>
+                                            <p class="text-gray-300 text-center text-sm px-4">
+                                                လက်ရှိဝန်ဆောင်မှု မရရှိပါ<br>
+                                                နောက်မှပြန်ဆက်သွယ်ပါမည်
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Status Badge for Resting -->
+                                    <div class="absolute top-4 right-4 ${badgeClass} px-4 py-2 rounded-full shadow-lg">
+                                        <span class="text-white font-bold text-sm">
+                                            <i class="fas ${statusIcon} mr-2"></i>${statusText}
+                                        </span>
+                                    </div>
+                                ` : `
+                                    <!-- AVAILABLE: SHOW ACTUAL IMAGES -->
+                                    <div class="slider-container p-4">
+                                        ${post.images.map(img => `
+                                            <img src="${img}" 
+                                                 class="slide-item" 
+                                                 onerror="this.src='https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'"
+                                                 alt="${post.name}"
+                                                 loading="lazy">
+                                        `).join('')}
+                                    </div>
+                                    
+                                    <!-- Status Badge for Available -->
+                                    <div class="absolute top-4 right-4 ${badgeClass} px-4 py-2 rounded-full shadow-lg">
+                                        <span class="text-white font-bold text-sm">
+                                            <i class="fas ${statusIcon} mr-2"></i>${statusText}
+                                        </span>
+                                    </div>
+                                    
+                                    <!-- Image Count Indicator -->
+                                    <div class="absolute bottom-4 right-4 bg-black/70 px-3 py-1 rounded-full">
+                                        <span class="text-white text-xs font-bold">
+                                            <i class="fas fa-image mr-1"></i>${post.images.length}
+                                        </span>
+                                    </div>
+                                `}
+                            </div>
+                            
+                            <!-- POST DETAILS -->
+                            <div class="p-6 md:p-8">
+                                <div class="flex justify-between items-start mb-6">
+                                    <div class="flex-1">
+                                        <h2 class="text-3xl md:text-4xl font-black ${post.isResting ? 'text-gray-400' : 'text-white'} mb-2">
+                                            ${post.name}
+                                        </h2>
+                                        <div class="flex flex-wrap items-center gap-3 mt-3">
+                                            <span class="bg-pink-500/20 text-pink-400 px-3 py-1 rounded-full text-sm font-bold">
+                                                <i class="fas fa-user mr-1"></i>Age: ${post.age}
+                                            </span>
+                                            <span class="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm font-bold">
+                                                <i class="fas fa-clock mr-1"></i>${post.time}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="text-right ml-4">
+                                        <div class="text-2xl font-black text-white bg-gradient-to-r from-pink-600 to-purple-700 px-5 py-3 rounded-2xl shadow-lg min-w-[120px]">
+                                            ${post.price}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- CONTACT BUTTON -->
+                                <a href="https://www.facebook.com/profile.php?id=61586281884184" 
+                                   target="_blank"
+                                   class="block w-full btn-primary text-center py-4 rounded-3xl font-black text-xl mb-6 shadow-xl hover:shadow-2xl transition-all duration-300 ${post.isResting ? 'opacity-50 cursor-not-allowed' : ''}"
+                                   ${post.isResting ? 'onclick="return false;"' : ''}>
+                                   <i class="fab fa-facebook-messenger mr-3"></i> 
+                                   ${post.isResting ? 'ယာယီမဆက်သွယ်နိုင်ပါ' : 'ဆက်သွယ်ရန် (FB)'}
+                                </a>
+                                
+                                <!-- ADMIN CONTROLS -->
+                                ${isAdmin ? `
+                                    <div class="admin-controls rounded-2xl p-4 mt-6">
+                                        <div class="flex gap-3">
+                                            <button onclick="updateRest('${post.id}', ${!post.isResting})" 
+                                                    class="flex-1 bg-gradient-to-r ${post.isResting ? 'from-green-600 to-emerald-700' : 'from-yellow-600 to-amber-700'} hover:opacity-90 text-white py-3 rounded-xl font-bold text-sm transition-all duration-300 hover:scale-[1.02]">
+                                                <i class="fas fa-power-off mr-2"></i> 
+                                                ${post.isResting ? 'ဖွင့်မည်' : 'နားမည်'}
+                                            </button>
+                                            <button onclick="deletePost('${post.id}')" 
+                                                    class="flex-1 bg-gradient-to-r from-red-600 to-rose-700 hover:opacity-90 text-white py-3 rounded-xl font-bold text-sm transition-all duration-300 hover:scale-[1.02]">
+                                                <i class="fas fa-trash mr-2"></i> ဖျက်မည်
+                                            </button>
+                                        </div>
+                                        <p class="text-gray-400 text-xs mt-3 text-center">
+                                            <i class="far fa-clock mr-1"></i>
+                                            နောက်ဆုံးပြင်ဆင်ချိန်: ${formatDate(post.updatedAt || post.createdAt)}
+                                        </p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                        
+                        postFeed.appendChild(card);
+                    }, index * 100);
+                });
+            }, (error) => {
+                console.error("Error loading posts:", error);
+                loading.classList.add('hidden');
+                postFeed.innerHTML = `
+                    <div class="text-center py-20 fade-in">
+                        <div class="glass rounded-3xl p-10 mx-4 border border-red-500/30">
+                            <i class="fas fa-exclamation-triangle text-7xl text-red-500 mb-6"></i>
+                            <p class="text-red-400 text-xl font-bold mb-2">ဒေတာရယူရာတွင် အမှားတစ်ခုဖြစ်နေသည်</p>
+                            <p class="text-gray-400 mb-6">အင်တာနက်ချိတ်ဆက်မှုကို စစ်ဆေးပါ</p>
+                            <button onclick="refreshPosts()" class="bg-gradient-to-r from-pink-600 to-purple-700 text-white py-3 px-8 rounded-2xl font-bold hover:scale-105 transition-transform duration-300">
+                                <i class="fas fa-sync-alt mr-2"></i>ပြန်ကြိုးစားမည်
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        // ============================================
+        // INITIALIZE APP
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load posts
+            loadPosts();
+            
+            // Click on header to open admin panel
+            document.getElementById('adminTrigger').addEventListener('click', openAdminPanel);
+            document.getElementById('adminBtn').addEventListener('click', openAdminPanel);
+            
+            // Close admin panel when clicking outside
+            document.addEventListener('click', function(event) {
+                if (adminPanel && !adminPanel.contains(event.target) && 
+                    event.target.id !== 'adminTrigger' && 
+                    event.target.id !== 'adminBtn' && 
+                    !event.target.closest('#adminBtn') &&
+                    !event.target.closest('#adminTrigger')) {
+                    closeAdmin();
+                }
+            });
+            
+            // Prevent closing when clicking inside admin panel
+            if (adminPanel) {
+                adminPanel.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                });
+            }
+            
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', function(event) {
+                // Ctrl + A to open admin (Windows/Linux)
+                // Cmd + A to open admin (Mac)
+                if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
+                    event.preventDefault();
+                    openAdminPanel();
+                }
+                
+                // Escape to close admin
+                if (event.key === 'Escape') {
+                    closeAdmin();
+                }
+                
+                // F5 to refresh
+                if (event.key === 'F5') {
+                    event.preventDefault();
+                    refreshPosts();
+                }
+            });
+            
+            // Auto-refresh every 30 seconds
+            setInterval(refreshPosts, 30000);
+        });
+        
+        // Image error handler
+        window.addEventListener('error', function(e) {
+            if (e.target.tagName === 'IMG') {
+                e.target.src = 'https://images.unsplash.com/photo-1633332755192-727a05c4013d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80';
+                e.target.onerror = null; // Prevent infinite loop
+            }
+        }, true);
+        
+        // Online/Offline detection
+        window.addEventListener('online', function() {
+            showNotification('🌐 အင်တာနက်ချိတ်ဆက်ပြီးပါပြီ', 'success');
+            refreshPosts();
+        });
+        
+        window.addEventListener('offline', function() {
+            showNotification('📵 အင်တာနက်ချိတ်ဆက်မှုပြတ်တောက်နေပါသည်', 'error');
+        });
     </script>
 </body>
 </html>
